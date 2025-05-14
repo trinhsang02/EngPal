@@ -1,23 +1,25 @@
 import React from 'react';
 import { View, Text, TextInput, TouchableOpacity, ScrollView, StyleSheet, FlatList } from 'react-native';
 import { Ionicons, MaterialIcons, FontAwesome5 } from '@expo/vector-icons';
-import { Header } from '../components/ui/Header';
-import { NavigationProp, useNavigation } from '@react-navigation/native';
-import { RootStackParamList } from '../navigation/navigation';
+import { Header } from '../../components/ui/Header';
+import { RootStackParamList } from '../../navigation/navigation';
+import { useState } from 'react';
 
 
 const recentTags = ['truffle', 'moisture fresh', 'moisture', 'w...'];
 const resources = [
-  { label: 'ChatGPT', icon: <Ionicons name="chatbubble-ellipses" size={24} color="#fff" />, color: '#00C853', destination: 'Settings' },
-  { label: 'Sách', icon: <Ionicons name="book" size={24} color="#fff" />, color: '#00B8D4', destination: 'Sách' },
-  { label: 'Tin tức', icon: <MaterialIcons name="article" size={24} color="#fff" />, color: '#FFB300', destination: 'Vocabulary' },
-  { label: 'Bài nghe', icon: <Ionicons name="headset" size={24} color="#fff" />, color: '#AB47BC', destination: 'Bài nghe' },
+  { label: 'Vocabulary', icon: <MaterialIcons name="menu-book" size={24} color="#fff" />, color: '#FFB300', destination: 'Vocabulary' }, 
+  { label: 'Bài tập', icon: <MaterialIcons name="assignment" size={24} color="#fff" />, color: '#00B8D4', destination: 'Exercise' }, 
+  { label: 'Ngữ pháp', icon: <MaterialIcons name="check" size={24} color="#fff" />, color: '#AB47BC', destination: 'Grammar' },
   { label: 'Game', icon: <FontAwesome5 name="gamepad" size={24} color="#fff" />, color: '#7E57C2', destination: 'Game' },
+  { label: 'Tư vấn', icon: <Ionicons name="chatbubble-ellipses" size={24} color="#fff" />, color: '#00C853', destination: 'Settings' },
+  { label: 'Tư vấn', icon: <Ionicons name="chatbubble-ellipses" size={24} color="#fff" />, color: '#00C853', destination: 'Settings' },
   // Add more as needed
 ];
 
 export default function HomePage({ navigation }: { navigation: any }) {
   // const navigation = useNavigation<NavigationProp<RootStackParamList>>();
+  const [isUserLoggedIn, setIsUserLoggedIn] = useState(false);      
   return (
     <ScrollView style={styles.container}>
       {/* Header */}
@@ -42,13 +44,22 @@ export default function HomePage({ navigation }: { navigation: any }) {
       </View>
 
       {/* Review Reminder */}
-      <View style={styles.reviewBox}>
-        <Text style={styles.reviewTitle}>Đã đến lúc ôn tập</Text>
-        <Text style={styles.reviewCount}>5 từ</Text>
-        <TouchableOpacity style={styles.reviewBtn}>
-          <Text style={styles.reviewBtnText}>Ôn tập ngay</Text>
-        </TouchableOpacity>
-      </View>
+      {isUserLoggedIn ? (
+        <View style={styles.reviewBox}>
+          <Text style={styles.reviewTitle}>Đã đến lúc ôn tập</Text>
+          <Text style={styles.reviewCount}>5 từ</Text>
+          <TouchableOpacity style={styles.reviewBtn}>
+            <Text style={styles.reviewBtnText}>Ôn tập ngay</Text>
+          </TouchableOpacity>
+        </View>
+      ) : (
+        <View style={styles.loginPrompt}>
+          <Text style={styles.loginText}>Bạn chưa đăng nhập. Vui lòng đăng nhập để cá nhân hóa lộ trình học tập của bạn.</Text>
+          <TouchableOpacity style={styles.loginBtn} onPress={() => navigation.navigate('SignIn')}>
+            <Text style={styles.loginBtnText}>Đăng nhập</Text>
+          </TouchableOpacity>
+        </View>
+      )}
 
       {/* Learning Resources */}
       <View style={styles.section}>
@@ -93,5 +104,9 @@ const styles = StyleSheet.create({
   resourcesGrid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between' },
   resourceItem: { width: '30%', aspectRatio: 1, borderRadius: 12, alignItems: 'center', justifyContent: 'center', marginBottom: 16 },
   resourceLabel: { color: '#fff', marginTop: 8, fontWeight: 'bold' },
-  fab: { position: 'absolute', bottom: 24, right: 24, backgroundColor: '#00CFFF', borderRadius: 32, width: 56, height: 56, alignItems: 'center', justifyContent: 'center', elevation: 4 },
+  fab: { position: 'absolute', bottom: -50, right: 24, backgroundColor: '#00CFFF', borderRadius: 32, width: 56, height: 56, alignItems: 'center', justifyContent: 'center', elevation: 4 },
+  loginPrompt: { alignItems: 'center', justifyContent: 'center', marginBottom: 24 },
+  loginText: { color: '#333', marginBottom: 16 },
+  loginBtn: { backgroundColor: '#4285F4', borderRadius: 24, paddingHorizontal: 32, paddingVertical: 12 },
+  loginBtnText: { color: '#fff', fontWeight: 'bold', fontSize: 16 },
 });

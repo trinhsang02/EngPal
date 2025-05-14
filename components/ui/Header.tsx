@@ -1,16 +1,23 @@
-import { View, Text, StyleSheet } from "react-native";
+import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { useNavigation } from "@react-navigation/native";
+import { useState } from "react";
 
 export function Header() {
+    const navigation = useNavigation();
+    const [notificationCount, setNotificationCount] = useState(4);
+    
     return (
     <View style={styles.container}>
         <View style={styles.header}>
             <Text style={styles.appName}>EngPal</Text>
             <View style={styles.headerRight}>
-                <Ionicons name="notifications-outline" size={28} color="#333" />
+                <TouchableOpacity onPress={() => navigation.navigate('Notification' as never)}>  
+                    <Ionicons name="notifications-outline" size={28} color="#333" />
+                </TouchableOpacity>
                 <View style={styles.badge}>
                     <Text style={styles.badgeText}>
-                        4
+                        {notificationCount}
                     </Text>
                 </View>
             </View>

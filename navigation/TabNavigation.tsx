@@ -1,5 +1,5 @@
-import HomePage from "@/screen/HomePage";
-import Setting from "@/screen/Setting";
+import HomePage from "@/screen/Tab/HomePage";
+import Setting from "@/screen/Tab/Setting";
 import { IconSymbol } from "@/components/ui/IconSymbol";
 import { MaterialIcons } from "@expo/vector-icons";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
@@ -36,7 +36,7 @@ export function TabNavigator() {
                     tabBarIcon: ({ color }) => <MaterialIcons size={28} name="settings" color={color} />,
                     headerShown: false,
                 }} />
- 
+
         </Tab.Navigator>
     );
 }
