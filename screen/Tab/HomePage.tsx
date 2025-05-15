@@ -1,25 +1,47 @@
-import React from 'react';
-import { View, Text, TextInput, TouchableOpacity, ScrollView, StyleSheet, FlatList } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, TextInput, TouchableOpacity, ScrollView, StyleSheet, FlatList, Modal } from 'react-native';
 import { Ionicons, MaterialIcons, FontAwesome5 } from '@expo/vector-icons';
 import { Header } from '../../components/ui/Header';
 import { RootStackParamList } from '../../navigation/navigation';
-import { useState } from 'react';
-
+import { loadVocabByLetter } from '@/utils/vocabLoader';
+import { Vocab } from '@/types/vocab';
+import * as Speech from 'expo-speech';
 
 const recentTags = ['truffle', 'moisture fresh', 'moisture', 'w...'];
 const resources = [
-  { label: 'Vocabulary', icon: <MaterialIcons name="menu-book" size={24} color="#fff" />, color: '#FFB300', destination: 'Vocabulary' }, 
-  { label: 'Bài tập', icon: <MaterialIcons name="assignment" size={24} color="#fff" />, color: '#00B8D4', destination: 'Exercise' }, 
+  { label: 'Vocabulary', icon: <MaterialIcons name="menu-book" size={24} color="#fff" />, color: '#FFB300', destination: 'Vocabulary' },
+  { label: 'Bài tập', icon: <MaterialIcons name="assignment" size={24} color="#fff" />, color: '#00B8D4', destination: 'Exercise' },
   { label: 'Ngữ pháp', icon: <MaterialIcons name="check" size={24} color="#fff" />, color: '#AB47BC', destination: 'Grammar' },
   { label: 'Game', icon: <FontAwesome5 name="gamepad" size={24} color="#fff" />, color: '#7E57C2', destination: 'Game' },
-  { label: 'Tư vấn', icon: <Ionicons name="chatbubble-ellipses" size={24} color="#fff" />, color: '#00C853', destination: 'Settings' },
-  { label: 'Tư vấn', icon: <Ionicons name="chatbubble-ellipses" size={24} color="#fff" />, color: '#00C853', destination: 'Settings' },
+  { label: 'Tư vấn', icon: <Ionicons name="chatbubble-ellipses" size={24} color="#fff" />, color: '#00C853', destination: 'Chat' },
+  { label: 'Tư vấn', icon: <Ionicons name="chatbubble-ellipses" size={24} color="#fff" />, color: '#00C853', destination: 'Chat' },
   // Add more as needed
 ];
 
 export default function HomePage({ navigation }: { navigation: any }) {
-  // const navigation = useNavigation<NavigationProp<RootStackParamList>>();
-  const [isUserLoggedIn, setIsUserLoggedIn] = useState(false);      
+  const [isUserLoggedIn, setIsUserLoggedIn] = useState(false);
+  const [search, setSearch] = useState('');
+  const [result, setResult] = useState<Vocab | null>(null);
+  const [modalVisible, setModalVisible] = useState(false);
+
+  const handleSearch = () => {
+    if (search.length > 0) {
+      const vocab = loadVocabByLetter(search[0]).find(
+        (v: Vocab) => v.word.toLowerCase() === search.toLowerCase()
+      );
+      if (vocab) {
+        setResult(vocab);
+        setModalVisible(true);
+      } else {
+        setResult(null);
+        setModalVisible(false);
+      }
+    } else {
+      setResult(null);
+      setModalVisible(false);
+    }
+  };
+
   return (
     <ScrollView style={styles.container}>
       {/* Header */}
@@ -33,7 +55,13 @@ export default function HomePage({ navigation }: { navigation: any }) {
         </View>
         <View style={styles.searchBar}>
           <Ionicons name="search" size={20} color="#888" />
-          <TextInput style={styles.input} placeholder="Tra từ điển" />
+          <TextInput
+            style={styles.input}
+            placeholder="Tra từ điển"
+            value={search}
+            onChangeText={setSearch}
+            onSubmitEditing={handleSearch}
+          />
           <Ionicons name="mic-outline" size={20} color="#888" />
         </View>
         <View style={styles.tagsRow}>
@@ -42,6 +70,35 @@ export default function HomePage({ navigation }: { navigation: any }) {
           ))}
         </View>
       </View>
+
+      {/* Popup tra từ điển */}
+      <Modal
+        visible={modalVisible}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setModalVisible(false)}
+      >
+        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.3)', justifyContent: 'flex-end', alignItems: 'center' }}>
+          <View style={{ backgroundColor: '#fff', borderRadius: 12, padding: 24, width: '85%', alignItems: 'center' }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+              <Text style={{ fontWeight: 'bold', fontSize: 22 }}>{result?.word}</Text>
+              <TouchableOpacity onPress={() => Speech.speak(result?.word || '')} style={{ marginLeft: 8 }}>
+                <Ionicons name="volume-high" size={24} color="#2196f3" />
+              </TouchableOpacity>
+            </View>
+            <Text style={{ color: '#2196f3', fontWeight: 'bold', marginBottom: 4 }}>
+              {result?.pos?.toUpperCase()}
+            </Text>
+            <Text style={{ fontStyle: 'italic', color: '#888', marginBottom: 8 }}>{result?.phonetic_text}</Text>
+            {result?.senses?.map((sense, idx) => (
+              <Text key={idx} style={{ marginTop: 4, fontSize: 16 }}>- {sense.definition}</Text>
+            ))}
+            <TouchableOpacity onPress={() => setModalVisible(false)}>
+              <Text style={{ color: '#2196f3', marginTop: 16, fontWeight: 'bold' }}>Đóng</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
 
       {/* Review Reminder */}
       {isUserLoggedIn ? (
@@ -76,7 +133,6 @@ export default function HomePage({ navigation }: { navigation: any }) {
           ))}
         </View>
       </View>
-
 
       {/* Floating Action Button */}
       <TouchableOpacity style={styles.fab}>

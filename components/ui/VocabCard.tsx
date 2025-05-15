@@ -104,3 +104,57 @@ const styles = StyleSheet.create({
         padding: 4,
     },
 });
+
+// import React from 'react';
+// import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+
+// const posColor = {
+//   noun: '#2196F3',
+//   verb: '#E91E63',
+//   adjective: '#9C27B0',
+//   adverb: '#03A9F4',
+//   preposition: '#F44336',
+//   'indefinite article': '#FF9800',
+// };
+
+// export const VocabularyCard = ({ vocab, onPress }: { vocab: any; onPress: () => void }) => {
+//   const color = posColor[vocab.pos.toLowerCase() as keyof typeof posColor] || '#777';
+//   return (
+//     <TouchableOpacity onPress={onPress} style={styles.card}>
+//       <View style={styles.row}>
+//         <Text style={styles.word}>{vocab.word}</Text>
+//         <View style={[styles.pos, { backgroundColor: color }]}>
+//           <Text style={styles.posText}>{vocab.pos}</Text>
+//         </View>
+//       </View>
+//       <View style={styles.pronounce}>
+//         <Text>🎧 {vocab.phonetic_text}</Text>
+//         <Text>🔊 {vocab.phonetic_am_text}</Text>
+//       </View>
+//       <Text style={styles.definition}>
+//         {vocab.senses?.[0]?.definition ?? 'No definition'}
+//       </Text>
+//     </TouchableOpacity>
+//   );
+// };
+
+// const styles = StyleSheet.create({
+//   card: {
+//     backgroundColor: '#fff8dc',
+//     marginVertical: 6,
+//     marginHorizontal: 12,
+//     borderRadius: 10,
+//     padding: 12,
+//     elevation: 3,
+//   },
+//   row: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+//   word: { fontSize: 20, fontWeight: 'bold' },
+//   pos: {
+//     paddingHorizontal: 8,
+//     paddingVertical: 2,
+//     borderRadius: 5,
+//   },
+//   posText: { color: 'white', fontWeight: 'bold' },
+//   pronounce: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 4 },
+//   definition: { marginTop: 8, color: '#444' },
+// });

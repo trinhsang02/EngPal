@@ -1,3 +1,5 @@
+import { Vocab } from '@/types/vocab';
+
 export type RootStackParamList = {
     'SignIn': undefined;
     'SignUp': undefined;
@@ -11,5 +13,7 @@ export type RootStackParamList = {
     'Grammar': undefined;
     'Writing': undefined;
     'Notification': undefined;
+    'VocabDetail': { vocab: Vocab };
+    'UserDetail': { name: string; email: string; id: string };
 };
 

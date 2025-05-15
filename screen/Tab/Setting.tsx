@@ -3,9 +3,9 @@ import { View, Text, StyleSheet, Image, TouchableOpacity, Switch, ScrollView } f
 import { MaterialIcons, FontAwesome5, Ionicons, FontAwesome, Entypo, Feather } from '@expo/vector-icons';
 import { Header } from '../../components/ui/Header';
 
-export default function SettingsScreen() {
-  const [reminderEnabled, setReminderEnabled] = useState(false);
 
+export default function SettingsScreen({ navigation }: { navigation: any }) {
+  const [reminderEnabled, setReminderEnabled] = useState(false);
   return (
     <View style={styles.container}>
       {/* Header */}
@@ -15,7 +15,7 @@ export default function SettingsScreen() {
         <Header />
       </View>
         {/* User Card */}
-        <TouchableOpacity style={styles.userCard} activeOpacity={0.8}>
+        <TouchableOpacity style={styles.userCard} activeOpacity={0.8} onPress={() => navigation.navigate('UserDetail' , { name: 'User', email: 'abc@gmail.com', id: '1234567890' })}>
           <FontAwesome5 name="user-circle" size={60} color="#4F8EF7" style={styles.avatar} />
           <View style={{ flex: 1 }}>
             <Text style={styles.userName}>User</Text>
