@@ -2,10 +2,12 @@ import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, ScrollView, StyleSheet, FlatList, Modal } from 'react-native';
 import { Ionicons, MaterialIcons, FontAwesome5 } from '@expo/vector-icons';
 import { Header } from '../../components/ui/Header';
-import { RootStackParamList } from '../../navigation/navigation';
+import { RootStackParamList } from '../../navigation/Navigation';
 import { loadVocabByLetter } from '@/utils/vocabLoader';
 import { Vocab } from '@/types/vocab';
 import * as Speech from 'expo-speech';
+import { useSelector } from 'react-redux';
+import { RootState } from '../../store/store';
 
 const recentTags = ['truffle', 'moisture fresh', 'moisture', 'w...'];
 const resources = [
@@ -13,13 +15,13 @@ const resources = [
   { label: 'Bài tập', icon: <MaterialIcons name="assignment" size={24} color="#fff" />, color: '#00B8D4', destination: 'Exercise' },
   { label: 'Ngữ pháp', icon: <MaterialIcons name="check" size={24} color="#fff" />, color: '#AB47BC', destination: 'Grammar' },
   { label: 'Game', icon: <FontAwesome5 name="gamepad" size={24} color="#fff" />, color: '#7E57C2', destination: 'Game' },
-  { label: 'Tư vấn', icon: <Ionicons name="chatbubble-ellipses" size={24} color="#fff" />, color: '#00C853', destination: 'Chat' },
+  { label: 'Review', icon: <Ionicons name="checkmark-circle" size={24} color="#fff" />, color: '#00C853', destination: 'Review' },
   { label: 'Tư vấn', icon: <Ionicons name="chatbubble-ellipses" size={24} color="#fff" />, color: '#00C853', destination: 'Chat' },
   // Add more as needed
 ];
 
 export default function HomePage({ navigation }: { navigation: any }) {
-  const [isUserLoggedIn, setIsUserLoggedIn] = useState(false);
+  const user = useSelector((state: RootState) => state.user.user);
   const [search, setSearch] = useState('');
   const [result, setResult] = useState<Vocab | null>(null);
   const [modalVisible, setModalVisible] = useState(false);
@@ -101,7 +103,7 @@ export default function HomePage({ navigation }: { navigation: any }) {
       </Modal>
 
       {/* Review Reminder */}
-      {isUserLoggedIn ? (
+      {user?.isLoggedIn ? (
         <View style={styles.reviewBox}>
           <Text style={styles.reviewTitle}>Đã đến lúc ôn tập</Text>
           <Text style={styles.reviewCount}>5 từ</Text>

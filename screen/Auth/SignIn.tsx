@@ -11,7 +11,9 @@ import {
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { RootStackParamList } from '@/navigation/navigation';
+import { RootStackParamList } from '@/navigation/Navigation';
+import { useAppDispatch } from '@/hooks/redux';
+import { login } from '@/store/userSlice';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList, 'SignIn'>;
 
@@ -19,10 +21,25 @@ export default function SignInScreen() {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const navigation = useNavigation<NavigationProp>();
+    const dispatch = useAppDispatch();
 
     const handleSignIn = () => {
-        // TODO: Implement sign in logic
+        // TODO: Implement actual sign in logic
         console.log('Sign in:', { email, password });
+
+        // Mock user data for now
+        dispatch(login({
+            id: '1',
+            email: email,
+            name: 'Test User',
+            level: 'Elementary',
+            progress: {
+                completedLessons: 0,
+                totalLessons: 0,
+                streak: 0
+            }
+        }));
+
         navigation.navigate('HomePage');
     };
 
