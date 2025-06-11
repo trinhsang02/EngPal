@@ -1,102 +1,13 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, Image, TouchableOpacity, Switch, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, Image, TouchableOpacity, Switch, ScrollView, Platform } from 'react-native';
 import { MaterialIcons, FontAwesome5, Ionicons, FontAwesome, Entypo, Feather } from '@expo/vector-icons';
 import { Header } from '../../components/ui/Header';
+import { useNavigation } from '@react-navigation/native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { RootStackParamList } from '../../navigation/Navigation';
+import DateTimePicker from '@react-native-community/datetimepicker';
 
-
-export default function SettingsScreen({ navigation }: { navigation: any }) {
-  const [reminderEnabled, setReminderEnabled] = useState(false);
-  return (
-    <View style={styles.container}>
-      {/* Header */}
-
-      <ScrollView contentContainerStyle={{ paddingBottom: 60 }}>
-      <View style={{ padding: 16, backgroundColor: '#ffffff' }}>
-        <Header />
-      </View>
-        {/* User Card */}
-        <TouchableOpacity style={styles.userCard} activeOpacity={0.8} onPress={() => navigation.navigate('UserDetail' , { name: 'User', email: 'abc@gmail.com', id: '1234567890' })}>
-          <FontAwesome5 name="user-circle" size={60} color="#4F8EF7" style={styles.avatar} />
-          <View style={{ flex: 1 }}>
-            <Text style={styles.userName}>User</Text>
-            <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 2 }}>
-              <FontAwesome name="google" size={16} color="#4285F4" />
-              <Text style={styles.userEmail}> abc@gmail.com</Text>
-            </View>
-            <Text style={styles.userId}>ID: 1234567890</Text>
-          </View>
-          <MaterialIcons name="keyboard-arrow-right" size={28} color="#bbb" />
-        </TouchableOpacity>
-
-        {/* Settings List */}
-        <Text style={styles.sectionTitle}>Cài đặt</Text>
-        <View style={styles.settingItem}>
-          <MaterialIcons name="language" size={22} color="#1ABC9C" style={styles.settingIcon} />
-          <Text style={styles.settingText}>Ngôn ngữ mẹ đẻ</Text>
-          <MaterialIcons name="keyboard-arrow-right" size={28} color="#bbb" style={styles.settingArrow} />
-        </View>
-        <View style={styles.settingItem}>
-          <FontAwesome5 name="graduation-cap" size={20} color="#FF914D" style={styles.settingIcon} />
-          <Text style={styles.settingText}>Trình độ</Text>
-          <MaterialIcons name="keyboard-arrow-right" size={28} color="#bbb" style={styles.settingArrow} />
-        </View>
-        <View style={styles.settingItem}>
-          <Entypo name="flag" size={22} color="#3EC6E0" style={styles.settingIcon} />
-          <Text style={styles.settingText}>Mục tiêu học</Text>
-          <MaterialIcons name="keyboard-arrow-right" size={28} color="#bbb" style={styles.settingArrow} />
-        </View>
-        <View style={styles.settingItem}>
-          <Feather name="grid" size={22} color="#1A56DB" style={styles.settingIcon} />
-          <Text style={styles.settingText}>Các chủ đề</Text>
-          <MaterialIcons name="keyboard-arrow-right" size={28} color="#bbb" style={styles.settingArrow} />
-        </View>
-
-        {/* Reminder Section */}
-        <View style={styles.reminderSection}>
-          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-            <MaterialIcons name="alarm" size={22} color="#F44336" style={styles.settingIcon} />
-            <Text style={styles.reminderTitle}>Nhắc nhở</Text>
-            <View style={{ flex: 1 }} />
-            <Switch
-              value={reminderEnabled}
-              onValueChange={setReminderEnabled}
-              trackColor={{ false: '#ccc', true: '#F44336' }}
-              thumbColor={reminderEnabled ? '#F44336' : '#f4f3f4'}
-            />
-          </View>
-          <View style={styles.reminderTimeRow}>
-            <Text style={styles.reminderTimeLabel}>Đặt giờ</Text>
-            <TouchableOpacity>
-              <Text style={styles.reminderTime}>21:30</Text>
-              <MaterialIcons name="keyboard-arrow-right" size={24} color="#bbb" />
-            </TouchableOpacity>
-          </View>
-          <Text style={styles.reminderNote}>
-            Bạn đang tắt thông báo nên không thể nhận được thông báo nhắc học. Bấm vào đây để mở lại
-          </Text>
-        </View>
-
-        {/* Information Section */}
-        <Text style={styles.sectionTitle}>Thông tin</Text>
-        <View style={styles.settingItem}>
-          <MaterialIcons name="info" size={22} color="#9B4DFF" style={styles.settingIcon} />
-          <Text style={styles.settingText}>Điều khoản sử dụng</Text>
-          <MaterialIcons name="keyboard-arrow-right" size={28} color="#bbb" style={styles.settingArrow} />
-        </View>
-        <View style={styles.settingItem}>
-          <MaterialIcons name="privacy-tip" size={22} color="#1ABC9C" style={styles.settingIcon} />
-          <Text style={styles.settingText}>Chính sách bảo mật</Text>
-          <MaterialIcons name="keyboard-arrow-right" size={28} color="#bbb" style={styles.settingArrow} />
-        </View>
-        <View style={styles.settingItem}>
-          <FontAwesome5 name="phone" size={20} color="#FF914D" style={styles.settingIcon} />
-          <Text style={styles.settingText}>Contact us</Text>
-          <MaterialIcons name="keyboard-arrow-right" size={28} color="#bbb" style={styles.settingArrow} />
-        </View>
-      </ScrollView>
-    </View>
-  );
-}
+type NavigationProp = NativeStackNavigationProp<RootStackParamList, 'Setting'>;
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#fafbfc' },
@@ -122,3 +33,172 @@ const styles = StyleSheet.create({
   reminderTime: { fontWeight: 'bold', fontSize: 16, color: '#222', marginRight: 4 },
   reminderNote: { fontSize: 13, color: '#888', marginTop: 8, fontStyle: 'italic' },
 });
+
+interface SettingItemProps {
+  icon: React.ReactNode;
+  text: string;
+  onPress: () => void;
+}
+
+const SettingItem: React.FC<SettingItemProps> = ({ icon, text, onPress }) => (
+  <TouchableOpacity style={styles.settingItem} onPress={onPress}>
+    {icon}
+    <Text style={styles.settingText}>{text}</Text>
+    <MaterialIcons name="keyboard-arrow-right" size={28} color="#bbb" style={styles.settingArrow} />
+  </TouchableOpacity>
+);
+
+const SETTINGS = [
+  {
+    icon: <MaterialIcons name="language" size={22} color="#1ABC9C" style={styles.settingIcon} />,
+    text: 'Ngôn ngữ mẹ đẻ',
+    screen: 'Language' as const,
+  },
+  {
+    icon: <FontAwesome5 name="graduation-cap" size={20} color="#FF914D" style={styles.settingIcon} />,
+    text: 'Trình độ',
+    screen: 'Level' as const,
+  },
+  {
+    icon: <Entypo name="flag" size={22} color="#3EC6E0" style={styles.settingIcon} />,
+    text: 'Mục tiêu học',
+    screen: 'Goal' as const,
+  },
+  {
+    icon: <Feather name="grid" size={22} color="#1A56DB" style={styles.settingIcon} />,
+    text: 'Các chủ đề',
+    screen: 'Topics' as const,
+  },
+];
+
+const INFO_SETTINGS = [
+  {
+    icon: <MaterialIcons name="info" size={22} color="#9B4DFF" style={styles.settingIcon} />,
+    text: 'Điều khoản sử dụng',
+    screen: 'Terms' as const,
+  },
+  {
+    icon: <MaterialIcons name="privacy-tip" size={22} color="#1ABC9C" style={styles.settingIcon} />,
+    text: 'Chính sách bảo mật',
+    screen: 'Privacy' as const,
+  },
+  {
+    icon: <FontAwesome5 name="phone" size={20} color="#FF914D" style={styles.settingIcon} />,
+    text: 'Contact us',
+    screen: 'Contact' as const,
+  },
+];
+
+function formatTime(date: Date) {
+  const h = date.getHours().toString().padStart(2, '0');
+  const m = date.getMinutes().toString().padStart(2, '0');
+  return `${h}:${m}`;
+}
+
+export default function SettingsScreen() {
+  const [reminderEnabled, setReminderEnabled] = useState(false);
+  const now = new Date();
+  const [reminderTime, setReminderTime] = useState(new Date(now.setHours(21, 30, 0, 0)));
+  const [showTimePicker, setShowTimePicker] = useState(false);
+  const navigation = useNavigation<NavigationProp>();
+
+  const onChangeTime = (event: any, selectedDate?: Date) => {
+    setShowTimePicker(false);
+    if (selectedDate) {
+      const newTime = new Date(reminderTime);
+      newTime.setHours(selectedDate.getHours());
+      newTime.setMinutes(selectedDate.getMinutes());
+      newTime.setSeconds(0);
+      newTime.setMilliseconds(0);
+      setReminderTime(newTime);
+    }
+  };
+
+  return (
+    <View style={styles.container}>
+      {/* Header */}
+
+      <ScrollView contentContainerStyle={{ paddingBottom: 60 }}>
+        <View style={{ padding: 16, backgroundColor: '#ffffff' }}>
+          <Header />
+        </View>
+        {/* User Card */}
+        <TouchableOpacity
+          style={styles.userCard}
+          activeOpacity={0.8}
+          onPress={() => navigation.navigate('UserDetail', { name: 'User', email: 'abc@gmail.com', id: '1234567890' })}
+        >
+          <FontAwesome5 name="user-circle" size={60} color="#4F8EF7" style={styles.avatar} />
+          <View style={{ flex: 1 }}>
+            <Text style={styles.userName}>User</Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 2 }}>
+              <FontAwesome name="google" size={16} color="#4285F4" />
+              <Text style={styles.userEmail}> abc@gmail.com</Text>
+            </View>
+            <Text style={styles.userId}>ID: 1234567890</Text>
+          </View>
+          <MaterialIcons name="keyboard-arrow-right" size={28} color="#bbb" />
+        </TouchableOpacity>
+
+        {/* Settings List */}
+        <Text style={styles.sectionTitle}>Cài đặt</Text>
+        {SETTINGS.map((setting, index) => (
+          <SettingItem
+            key={index}
+            icon={setting.icon}
+            text={setting.text}
+            onPress={() => navigation.navigate(setting.screen)}
+          />
+        ))}
+
+        {/* Reminder Section */}
+        <View style={styles.reminderSection}>
+          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+            <MaterialIcons name="alarm" size={22} color="#F44336" style={styles.settingIcon} />
+            <Text style={styles.reminderTitle}>Nhắc nhở</Text>
+            <View style={{ flex: 1 }} />
+            <Switch
+              value={reminderEnabled}
+              onValueChange={setReminderEnabled}
+              trackColor={{ false: '#ccc', true: '#F44336' }}
+              thumbColor={reminderEnabled ? '#F44336' : '#f4f3f4'}
+            />
+          </View>
+          <TouchableOpacity
+            style={styles.reminderTimeRow}
+            onPress={() => setShowTimePicker(true)}
+          >
+            <Text style={styles.reminderTimeLabel}>Đặt giờ</Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+              <Text style={styles.reminderTime}>{formatTime(reminderTime)}</Text>
+              <MaterialIcons name="keyboard-arrow-right" size={24} color="#bbb" />
+            </View>
+          </TouchableOpacity>
+          <Text style={styles.reminderNote}>
+            Bạn đang tắt thông báo nên không thể nhận được thông báo nhắc học. Bấm vào đây để mở lại
+          </Text>
+        </View>
+        {showTimePicker && (
+          <DateTimePicker
+            value={reminderTime}
+            mode="time"
+            is24Hour={true}
+            display={Platform.OS === 'ios' ? 'spinner' : 'clock'}
+            onChange={onChangeTime}
+          />
+        )}
+
+        {/* Information Section */}
+        <Text style={styles.sectionTitle}>Thông tin</Text>
+        {INFO_SETTINGS.map((setting, index) => (
+          <SettingItem
+            key={index}
+            icon={setting.icon}
+            text={setting.text}
+            onPress={() => navigation.navigate(setting.screen)}
+          />
+        ))}
+      </ScrollView>
+    </View>
+  );
+}

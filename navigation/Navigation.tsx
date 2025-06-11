@@ -15,5 +15,14 @@ export type RootStackParamList = {
     'Notification': undefined;
     'VocabDetail': { vocab: Vocab };
     'UserDetail': { name: string; email: string; id: string };
+    'Goal': undefined;
+    'Level': undefined;
+    'Topics': undefined;
+    'Language': undefined;
+    'ReminderTime': undefined;
+    'Terms': undefined;
+    'Privacy': undefined;
+    'Contact': undefined;
+    'Review': undefined;
 };
 

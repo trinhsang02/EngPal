@@ -11,7 +11,7 @@ import {
 } from 'react-native';
 import { Header } from '@/components/ui/Header';
 import { useNavigation } from '@react-navigation/native';
-import { RootStackParamList } from '@/navigation/navigation';
+import { RootStackParamList } from '@/navigation/Navigation';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
 // Placeholder for icons

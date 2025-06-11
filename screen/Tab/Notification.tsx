@@ -22,9 +22,6 @@ export default function NotificationScreen() {
     return (
         <View style={styles.container}>
             {/* Header */}
-            <View style={styles.headerWrap}>
-                <Text style={styles.header}>Thông báo</Text>
-            </View>
             <FlatList
                 data={notifications}
                 keyExtractor={item => item.id}
@@ -51,8 +48,6 @@ export default function NotificationScreen() {
 
 const styles = StyleSheet.create({
     container: { flex: 1, backgroundColor: '#fff' },
-    headerWrap: { paddingTop: 32, paddingBottom: 12, alignItems: 'center', backgroundColor: '#fff' },
-    header: { fontSize: 22, fontWeight: 'bold', color: '#222' },
     card: { backgroundColor: '#fff', borderRadius: 8, padding: 16, marginHorizontal: 12, marginTop: 12, elevation: 1, borderWidth: 1, borderColor: '#f2f2f2' },
     row: { flexDirection: 'row', alignItems: 'center', marginBottom: 4 },
     icon: { width: 40, height: 40, borderRadius: 20, marginRight: 12, backgroundColor: '#eee' },
