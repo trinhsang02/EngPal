@@ -24,5 +24,7 @@ export type RootStackParamList = {
     'Privacy': undefined;
     'Contact': undefined;
     'Review': undefined;
+    'Chat': undefined;
+    'QuizScreen': { quizzes: any[] };
 };
 

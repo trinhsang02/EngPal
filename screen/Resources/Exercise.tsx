@@ -1,51 +1,54 @@
-import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, ScrollView, StyleSheet } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, TextInput, TouchableOpacity, ScrollView, StyleSheet, ActivityIndicator } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { Header } from '@/components/ui/Header';
+import { getSuggestionTopics, generateAssignment } from '@/services/assignmentService';
+import { useSelector } from 'react-redux';
 
-const SUGGESTED_TOPICS = [
-    'Cultural festivals',
-    'Music preferences',
-    'Historical events',
-    'Sports achievements',
-    'Healthy lifestyles',
-];
+const SUGGESTED_TOPICS = getSuggestionTopics();
 
 const QUESTION_TYPES = [
-    { label: 'Matching Headings: Chọn tiêu đề phù hợp', value: 'matching' },
-    { label: 'Dialogue Completion: Hoàn thành đoạn hội thoại', value: 'dialogue' },
-    { label: 'Sentence Ordering: Sắp xếp câu', value: 'ordering' },
-    { label: 'Word Meaning in Context: Tìm nghĩa của từ trong ngữ cảnh', value: 'meaning' },
-    { label: 'Most Suitable Word: Chọn từ thích hợp nhất', value: 'most_suitable_word' },
-    { label: 'Verb Conjugation: Chia động từ', value: 'verb_conjugation' },
-    { label: 'Conditional Sentences: Câu điều kiện', value: 'conditional_sentences' },
-    { label: 'Indirect Speech: Câu gián tiếp', value: 'indirect_speech' },
-    { label: 'Sentence Completion: Điền vào chỗ trống', value: 'sentence_completion' },
-    { label: 'Reading Comprehension: Đọc hiểu văn bản', value: 'reading_comprehension' },
-    { label: 'Grammar: Ngữ pháp', value: 'grammar' },
-    { label: 'Collocation: Phối hợp từ', value: 'collocation' },    
-    { label: 'Synonym/Antonym: Từ đồng nghĩa/trái nghĩa', value: 'synonym_antonym' },
-    { label: 'Vocabulary: Từ vựng', value: 'vocabulary' },
-    { label: 'Error Identification: Xác định lỗi sai', value: 'error_identification' },
-    { label: 'Word Formation: Chuyển đổi từ loại', value: 'word_formation' },
-    { label: 'Passive Voice: Câu bị động', value: 'passive_voice' },
-    { label: 'Relative Clauses: Mệnh đề quan hệ', value: 'relative_clauses' },
-    { label: 'Comparison Sentences: Câu so sánh', value: 'comparison_sentences' },
-    { label: 'Inversion: Câu đảo ngữ', value: 'inversion' },
-    { label: 'Articles: Mạo từ', value: 'articles' },
-    { label: 'Prepositions: Giới từ', value: 'prepositions' },
-    { label: 'Idioms: Thành ngữ', value: 'idioms' },
-    { label: 'Sentence Transformation: Câu đồng nghĩa', value: 'sentence_transformation' },
-    { label: 'Pronunciation & Stress: Trọng âm và phát âm', value: 'pronunciation_stress' },
-    { label: 'Cloze Test: Đọc điền từ', value: 'cloze_test' },
-    { label: 'Sentence Combination: Nối câu', value: 'sentence_combination' },
+    { label: 'Multiple Choice: Chọn kết quả đúng', value: 'Multiple Choice' },
+    { label: 'Fill in the Blank: Điền vào chỗ trống', value: 'Fill in the Blank' },
+    { label: 'Short Answer: Câu trả lời ngắn', value: 'Short Answer' },
+    { label: 'Essay: Bài viết', value: 'Essay' },
+    // { label: 'Most Suitable Word: Chọn từ thích hợp nhất', value: 'most_suitable_word' },
+    // { label: 'Verb Conjugation: Chia động từ', value: 'verb_conjugation' },
+    // { label: 'Conditional Sentences: Câu điều kiện', value: 'conditional_sentences' },
+    // { label: 'Indirect Speech: Câu gián tiếp', value: 'indirect_speech' },
+    // { label: 'Sentence Completion: Điền vào chỗ trống', value: 'sentence_completion' },
+    // { label: 'Reading Comprehension: Đọc hiểu văn bản', value: 'reading_comprehension' },
+    // { label: 'Grammar: Ngữ pháp', value: 'grammar' },
+    // { label: 'Collocation: Phối hợp từ', value: 'collocation' },
+    // { label: 'Synonym/Antonym: Từ đồng nghĩa/trái nghĩa', value: 'synonym_antonym' },
+    // { label: 'Vocabulary: Từ vựng', value: 'vocabulary' },
+    // { label: 'Error Identification: Xác định lỗi sai', value: 'error_identification' },
+    // { label: 'Word Formation: Chuyển đổi từ loại', value: 'word_formation' },
+    // { label: 'Passive Voice: Câu bị động', value: 'passive_voice' },
+    // { label: 'Relative Clauses: Mệnh đề quan hệ', value: 'relative_clauses' },
+    // { label: 'Comparison Sentences: Câu so sánh', value: 'comparison_sentences' },
+    // { label: 'Inversion: Câu đảo ngữ', value: 'inversion' },
+    // { label: 'Articles: Mạo từ', value: 'articles' },
+    // { label: 'Prepositions: Giới từ', value: 'prepositions' },
+    // { label: 'Idioms: Thành ngữ', value: 'idioms' },
+    // { label: 'Sentence Transformation: Câu đồng nghĩa', value: 'sentence_transformation' },
+    // { label: 'Pronunciation & Stress: Trọng âm và phát âm', value: 'pronunciation_stress' },
+    // { label: 'Cloze Test: Đọc điền từ', value: 'cloze_test' },
+    // { label: 'Sentence Combination: Nối câu', value: 'sentence_combination' },
 ];
 
-export default function ExerciseScreen() {
+export default function ExerciseScreen({ navigation }: { navigation: any }) {
     const [topic, setTopic] = useState('');
     const [selectedTags, setSelectedTags] = useState<string[]>([]);
     const [questionCount, setQuestionCount] = useState('10');
     const [selectedTypes, setSelectedTypes] = useState<string[]>([]);
+    const [suggestedTopics, setSuggestedTopics] = useState<string[]>([]);
+    const user = useSelector((state: any) => state.user.user);
+    const [loading, setLoading] = useState(false);
+
+    useEffect(() => {
+        SUGGESTED_TOPICS.then(setSuggestedTopics);
+    }, []);
 
     const toggleTag = (tag: string) => {
         setSelectedTags(tags =>
@@ -58,6 +61,23 @@ export default function ExerciseScreen() {
         setSelectedTypes(types =>
             types.includes(type) ? types.filter(t => t !== type) : [...types, type]
         );
+    };
+
+    const handleCreateAssignment = async () => {
+        setLoading(true);
+        try {
+            const response = await generateAssignment({
+                topic: topic,
+                assignment_types: selectedTypes,
+                english_level: user?.english_level,
+                total_questions: parseInt(questionCount),
+            });
+            navigation.navigate('QuizScreen', { quizzes: response.quizzes });
+        } catch (error) {
+            console.error('Error creating assignment:', error);
+        } finally {
+            setLoading(false);
+        }
     };
 
     return (
@@ -80,7 +100,7 @@ export default function ExerciseScreen() {
 
                 <Text style={styles.sectionLabel}>Chủ đề gợi ý</Text>
                 <View style={styles.tagsRow}>
-                    {SUGGESTED_TOPICS.map(tag => (
+                    {suggestedTopics.map(tag => (
                         <TouchableOpacity
                             key={tag}
                             style={[
@@ -124,10 +144,23 @@ export default function ExerciseScreen() {
                     ))}
                 </View>
 
-                <TouchableOpacity style={styles.createBtn}>
-                    <MaterialIcons name="add-task" size={22} color="#fff" />
-                    <Text style={styles.createBtnText}>Tạo bài tập</Text>
-                </TouchableOpacity>
+                <View style={{ flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 12 }}>
+                    <TouchableOpacity style={styles.createBtn} onPress={handleCreateAssignment} disabled={loading}>
+                        <MaterialIcons name="add-task" size={22} color="#fff" />
+                        {loading ? (
+                            <>
+                                <ActivityIndicator color="#fff" size="small" style={{ marginRight: 8 }} />
+                                <Text style={styles.createBtnText}>Đang tạo bài tập</Text>
+                            </>
+                        ) : (
+                            <Text style={styles.createBtnText}>Tạo bài tập</Text>
+                        )}
+                    </TouchableOpacity>
+                    <TouchableOpacity style={[styles.createBtn, { backgroundColor: '#888' }]} onPress={() => navigation.goBack()} disabled={loading}>
+                        <MaterialIcons name="arrow-back" size={22} color="#fff" />
+                        <Text style={styles.createBtnText}>Quay lại</Text>
+                    </TouchableOpacity>
+                </View>
             </View>
         </ScrollView>
     );

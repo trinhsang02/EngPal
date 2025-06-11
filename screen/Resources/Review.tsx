@@ -74,7 +74,8 @@ const Review = () => {
     return (
         <ScrollView style={styles.container}>
             <View style={styles.formContainer}>
-                <Text style={styles.title}>Writing Review</Text>
+
+                {/* <Text style={styles.title}>Writing Review</Text> */}
 
                 <Text style={styles.label}>Your Level</Text>
                 <View style={styles.levelDisplay}>
@@ -388,6 +389,12 @@ const styles = StyleSheet.create({
         fontSize: 16,
         color: '#333',
         fontWeight: '500',
+    },
+    header: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginBottom: 20,
+        minHeight: 56,
     },
 });
 
