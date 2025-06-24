@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, ScrollView, StyleSheet, FlatList, Modal } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, ScrollView, StyleSheet, FlatList, Modal, Image } from 'react-native';
 import { Ionicons, MaterialIcons, FontAwesome5 } from '@expo/vector-icons';
 import { Header } from '../../components/ui/Header';
 import { RootStackParamList } from '../../navigation/Navigation';
@@ -11,12 +11,14 @@ import { RootState } from '../../store/store';
 
 const recentTags = ['truffle', 'moisture fresh', 'moisture', 'w...'];
 const resources = [
-  { label: 'Vocabulary', icon: <MaterialIcons name="menu-book" size={24} color="#fff" />, color: '#FFB300', destination: 'Vocabulary' },
-  { label: 'Bài tập', icon: <MaterialIcons name="assignment" size={24} color="#fff" />, color: '#00B8D4', destination: 'Exercise' },
-  { label: 'Ngữ pháp', icon: <MaterialIcons name="check" size={24} color="#fff" />, color: '#AB47BC', destination: 'Grammar' },
-  { label: 'Game', icon: <FontAwesome5 name="gamepad" size={24} color="#fff" />, color: '#7E57C2', destination: 'Game' },
-  { label: 'Review', icon: <Ionicons name="checkmark-circle" size={24} color="#fff" />, color: '#00C853', destination: 'Review' },
-  { label: 'Tư vấn', icon: <Ionicons name="chatbubble-ellipses" size={24} color="#fff" />, color: '#00C853', destination: 'Chat' },
+  { label: 'Vocabulary', icon: <MaterialIcons name="menu-book" size={34} color="#fff" />, color: '#FFB300', destination: 'Vocabulary' },
+  { label: 'Bài tập', icon: <MaterialIcons name="assignment" size={34} color="#fff" />, color: '#00B8D4', destination: 'Exercise' },
+  { label: 'Ngữ pháp', icon: <FontAwesome5 name="graduation-cap" size={34} color="#fff" />, color: '#AB47BC', destination: 'Grammar' },
+  { label: 'Review', icon: <Ionicons name="checkmark-circle" size={34} color="#fff" />, color: '#00C853', destination: 'Review' },
+  { label: 'Tư vấn', icon: <Ionicons name="chatbubble-ellipses" size={34} color="#fff" />, color: '#00C853', destination: 'Chat' },
+  { label: 'Game', icon: <FontAwesome5 name="gamepad" size={34} color="#fff" />, color: '#7E57C2', destination: 'Game' },
+  { label: 'News', icon: <Ionicons name="chatbubble-ellipses" size={34} color="#fff" />, color: '#00C853', destination: 'Chat' },
+  { label: 'Listening', icon: <Ionicons name="chatbubble-ellipses" size={34} color="#fff" />, color: '#00C853', destination: 'Chat' },
   // Add more as needed
 ];
 
@@ -92,9 +94,12 @@ export default function HomePage({ navigation }: { navigation: any }) {
               {result?.pos?.toUpperCase()}
             </Text>
             <Text style={{ fontStyle: 'italic', color: '#888', marginBottom: 8 }}>{result?.phonetic_text}</Text>
-            {result?.senses?.map((sense, idx) => (
-              <Text key={idx} style={{ marginTop: 4, fontSize: 16 }}>- {sense.definition}</Text>
-            ))}
+            <View>
+              {result?.senses?.map((sense, idx) => (
+                <Text key={idx} style={{ marginTop: 4, fontSize: 16 }}>- {sense.definition}</Text>
+              ))}
+            </View>
+
             <TouchableOpacity onPress={() => setModalVisible(false)}>
               <Text style={{ color: '#2196f3', marginTop: 16, fontWeight: 'bold' }}>Đóng</Text>
             </TouchableOpacity>
@@ -104,12 +109,19 @@ export default function HomePage({ navigation }: { navigation: any }) {
 
       {/* Review Reminder */}
       {user?.isLoggedIn ? (
-        <View style={styles.reviewBox}>
-          <Text style={styles.reviewTitle}>Đã đến lúc ôn tập</Text>
-          <Text style={styles.reviewCount}>5 từ</Text>
-          <TouchableOpacity style={styles.reviewBtn}>
-            <Text style={styles.reviewBtnText}>Ôn tập ngay</Text>
-          </TouchableOpacity>
+        <View style={[styles.reviewBox, { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }]}>
+          <View>
+            <Text style={styles.reviewTitle}>Đã đến lúc ôn tập</Text>
+            <Text style={styles.reviewCount}>5 từ</Text>
+            <TouchableOpacity style={styles.reviewBtn}>
+              <Text style={styles.reviewBtnText}>Ôn tập ngay</Text>
+            </TouchableOpacity>
+          </View>
+          <Image
+            source={require('../../assets/images/homework.png')}
+            style={{ width: 150, height: 150, marginLeft: 12 }}
+            resizeMode="contain"
+          />
         </View>
       ) : (
         <View style={styles.loginPrompt}>
@@ -128,8 +140,14 @@ export default function HomePage({ navigation }: { navigation: any }) {
         </View>
         <View style={styles.resourcesGrid}>
           {resources.map((res, idx) => (
-            <TouchableOpacity key={idx} style={[styles.resourceItem, { backgroundColor: res.color }]} onPress={() => navigation.navigate(res.destination as keyof RootStackParamList)}>
-              {res.icon}
+            <TouchableOpacity
+              key={idx}
+              style={styles.resourceItem}
+              onPress={() => navigation.navigate(res.destination as keyof RootStackParamList)}
+            >
+              <View style={[styles.iconCircle, { backgroundColor: res.color }]}>
+                {res.icon}
+              </View>
               <Text style={styles.resourceLabel}>{res.label}</Text>
             </TouchableOpacity>
           ))}
@@ -156,12 +174,28 @@ const styles = StyleSheet.create({
   reviewBox: { backgroundColor: '#f5faff', borderRadius: 12, padding: 16, alignItems: 'center', marginBottom: 24 },
   reviewTitle: { fontSize: 16, color: '#333', marginBottom: 4 },
   reviewCount: { color: 'red', fontWeight: 'bold', fontSize: 16, marginBottom: 8 },
-  reviewBtn: { backgroundColor: '#4285F4', borderRadius: 24, paddingHorizontal: 32, paddingVertical: 12 },
+  reviewBtn: { backgroundColor: '#4285F4', borderRadius: 10, paddingHorizontal: 32, paddingVertical: 12 },
   reviewBtnText: { color: '#fff', fontWeight: 'bold', fontSize: 16 },
   link: { color: '#4285F4', fontSize: 14 },
   resourcesGrid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between' },
-  resourceItem: { width: '30%', aspectRatio: 1, borderRadius: 12, alignItems: 'center', justifyContent: 'center', marginBottom: 16 },
-  resourceLabel: { color: '#fff', marginTop: 8, fontWeight: 'bold' },
+  iconCircle: {
+    width: 64,
+    height: 64,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 8,
+  },
+  resourceItem: {
+    width: '24%',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  resourceLabel: {
+    color: '#333',
+    fontWeight: 'bold',
+    marginTop: 4,
+  },
   fab: { position: 'absolute', bottom: -50, right: 24, backgroundColor: '#00CFFF', borderRadius: 32, width: 56, height: 56, alignItems: 'center', justifyContent: 'center', elevation: 4 },
   loginPrompt: { alignItems: 'center', justifyContent: 'center', marginBottom: 24 },
   loginText: { color: '#333', marginBottom: 16 },
