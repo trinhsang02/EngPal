@@ -26,5 +26,9 @@ export type RootStackParamList = {
     'Review': undefined;
     'Chat': undefined;
     'QuizScreen': { quizzes: any[] };
+    'FlashCardSession': {
+        sessionType: 'review' | 'new' | 'mixed';
+        wordCount?: number;
+    };
 };
 

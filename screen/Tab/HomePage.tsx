@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, ScrollView, StyleSheet, FlatList, Modal } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, ScrollView, StyleSheet, FlatList, Modal, Image } from 'react-native';
 import { Ionicons, MaterialIcons, FontAwesome5 } from '@expo/vector-icons';
 import { Header } from '../../components/ui/Header';
 import { RootStackParamList } from '../../navigation/Navigation';
@@ -94,9 +94,12 @@ export default function HomePage({ navigation }: { navigation: any }) {
               {result?.pos?.toUpperCase()}
             </Text>
             <Text style={{ fontStyle: 'italic', color: '#888', marginBottom: 8 }}>{result?.phonetic_text}</Text>
-            {result?.senses?.map((sense, idx) => (
-              <Text key={idx} style={{ marginTop: 4, fontSize: 16 }}>- {sense.definition}</Text>
-            ))}
+            <View>
+              {result?.senses?.map((sense, idx) => (
+                <Text key={idx} style={{ marginTop: 4, fontSize: 16 }}>- {sense.definition}</Text>
+              ))}
+            </View>
+
             <TouchableOpacity onPress={() => setModalVisible(false)}>
               <Text style={{ color: '#2196f3', marginTop: 16, fontWeight: 'bold' }}>Đóng</Text>
             </TouchableOpacity>
@@ -106,12 +109,19 @@ export default function HomePage({ navigation }: { navigation: any }) {
 
       {/* Review Reminder */}
       {user?.isLoggedIn ? (
-        <View style={styles.reviewBox}>
-          <Text style={styles.reviewTitle}>Đã đến lúc ôn tập</Text>
-          <Text style={styles.reviewCount}>5 từ</Text>
-          <TouchableOpacity style={styles.reviewBtn}>
-            <Text style={styles.reviewBtnText}>Ôn tập ngay</Text>
-          </TouchableOpacity>
+        <View style={[styles.reviewBox, { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }]}>
+          <View>
+            <Text style={styles.reviewTitle}>Đã đến lúc ôn tập</Text>
+            <Text style={styles.reviewCount}>5 từ</Text>
+            <TouchableOpacity style={styles.reviewBtn}>
+              <Text style={styles.reviewBtnText}>Ôn tập ngay</Text>
+            </TouchableOpacity>
+          </View>
+          <Image
+            source={require('../../assets/images/homework.png')}
+            style={{ width: 150, height: 150, marginLeft: 12 }}
+            resizeMode="contain"
+          />
         </View>
       ) : (
         <View style={styles.loginPrompt}>
@@ -164,7 +174,7 @@ const styles = StyleSheet.create({
   reviewBox: { backgroundColor: '#f5faff', borderRadius: 12, padding: 16, alignItems: 'center', marginBottom: 24 },
   reviewTitle: { fontSize: 16, color: '#333', marginBottom: 4 },
   reviewCount: { color: 'red', fontWeight: 'bold', fontSize: 16, marginBottom: 8 },
-  reviewBtn: { backgroundColor: '#4285F4', borderRadius: 24, paddingHorizontal: 32, paddingVertical: 12 },
+  reviewBtn: { backgroundColor: '#4285F4', borderRadius: 10, paddingHorizontal: 32, paddingVertical: 12 },
   reviewBtnText: { color: '#fff', fontWeight: 'bold', fontSize: 16 },
   link: { color: '#4285F4', fontSize: 14 },
   resourcesGrid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between' },

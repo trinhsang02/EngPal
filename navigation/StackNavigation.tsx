@@ -25,7 +25,7 @@ export default function StackNavigator() {
             <Stack.Screen name="SignIn" component={SignInScreen} options={{ headerShown: false }} />
             <Stack.Screen name="SignUp" component={SignUpScreen} options={{ headerShown: false }} />
             <Stack.Screen name="Exercise" component={ExerciseScreen} options={{ headerShown: false }} />
-            <Stack.Screen name="VocabDetail" component={VocabDetail} options={{ headerShown: true }} />
+            <Stack.Screen name="VocabDetail" component={VocabDetail} options={{ headerShown: true, headerTitle: 'Word Detail' }} />
             <Stack.Screen name="UserDetail" component={UserDetailScreen} options={{ headerShown: true, headerTitle: 'Sửa thông tin' }} />
             <Stack.Screen name="Goal" component={GoalScreen} options={{ headerShown: false }} />
             <Stack.Screen name="Level" component={LevelScreen} options={{ headerShown: false }} />

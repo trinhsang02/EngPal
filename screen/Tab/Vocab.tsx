@@ -1,133 +1,402 @@
-// import React from "react";
-// import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from "react-native";
-// import { MaterialIcons } from "@expo/vector-icons";
-// import VocabCard from "@/components/ui/VocabCard";
-// import { loadAllVocab } from "@/utils/vocabLoader";
+import React, { useState, useCallback, useEffect } from 'react';
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  FlatList,
+  ActivityIndicator,
+  RefreshControl,
+  Alert,
+  TextInput,
+  StyleSheet,
+} from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
+import { useOxfordDatabase } from '../../hooks/useOxfordDatabase';
+import { Word } from '../../services/oxfordDatabase';
 
-// const vocabData = [
-//     {
-//         word: "abortion",
-//         type: "noun",
-//         pronunciations: ["/əˈbɔːʃn/", "/əˈbɔːrʃn/"],
-//         definition: "the deliberate ending of a pregnancy at an early stage",
-//         isFavorite: true,
-//     },
-//     {
-//         word: "about",
-//         type: "adverb",
-//         pronunciations: ["/əˈbaʊt/", "/əˈbaʊt/"],
-//         definition: "a little more or less than; a little before or after",
-//         isFavorite: true,
-//     },
-//     {
-//         word: "about",
-//         type: "preposition",
-//         pronunciations: ["/əˈbaʊt/", "/əˈbaʊt/"],
-//         definition: "on the subject of somebody/something; in connection with somebody/something",
-//         isFavorite: true,
-//     },
-//     {
-//         word: "above",
-//         type: "adverb",
-//         pronunciations: ["/əˈbʌv/", "/əˈbʌv/"],
-//         definition: "at or to a higher place",
-//         isFavorite: true,
-//     },
-//     {
-//         word: "above",
-//         type: "preposition",
-//         pronunciations: ["/əˈbʌv/", "/əˈbʌv/"],
-//         definition: "at or to a higher place or position than something/somebody",
-//         isFavorite: true,
-//         isHot: true,
-//     },
-// ];
+const Vocab: React.FC = () => {
+  const navigation = useNavigation();
+  const [searchQuery, setSearchQuery] = useState<string>('');
+  const [refreshing, setRefreshing] = useState<boolean>(false);
 
-// export default function VocabScreen() {
-//     return (
-//         <View style={{ flex: 1, backgroundColor: "#fff" }}>
-//             <View style={styles.headerRow}>
-//                 <Text style={styles.headerTitle}>Vocabulary</Text>
-//                 <MaterialIcons name="search" size={24} color="#6b5e3c" style={{ marginRight: 16 }} />
-//             </View>
-//             <Text style={styles.allWords}>All words</Text>
-//             <ScrollView contentContainerStyle={{ paddingBottom: 24 }}>
-//                 {vocabData.map((item, idx) => (
-//                     <VocabCard key={idx} item={item} onEdit={() => { }} />
-//                 ))}
-//             </ScrollView>
-//         </View>
-//     );
-// }
+  const {
+    isLoading,
+    error,
+    words,
+    searchWords,
+    getAllWords,
+    updateMasteredStatus,
+    clearError,
+  } = useOxfordDatabase();
 
+  const handleLoadWords = useCallback(async () => {
+    try {
+      console.log('Vocab: Loading all words...');
+      const result = await getAllWords();
+      console.log('Vocab: Loaded', result.length, 'words');
 
-// const styles = StyleSheet.create({
-//     headerRow: {
-//         flexDirection: "row",
-//         alignItems: "center",
-//         justifyContent: "space-between",
-//         paddingTop: 32,
-//         paddingBottom: 8,
-//         paddingHorizontal: 20,
-//         backgroundColor: "#fff",
-//     },
-//     headerTitle: {
-//         fontSize: 22,
-//         fontWeight: "bold",
-//         color: "#a88c2c",
-//         letterSpacing: 0.5,
-//     },
-//     allWords: {
-//         color: "#a88c2c",
-//         fontSize: 16,
-//         marginLeft: 24,
-//         marginBottom: 8,
-//         marginTop: 2,
-//     },
-// });
+      // Log first few words to see their mastered status
+      if (result.length > 0) {
+        console.log('Vocab: First 3 words loaded:');
+        result.slice(0, 3).forEach((word, index) => {
+          console.log(`Word ${index + 1}: ${word.word}, mastered: ${word.mastered} (type: ${typeof word.mastered})`);
+        });
+      }
+    } catch (err) {
+      console.error('Vocab: Failed to load words:', err);
+    }
+  }, [getAllWords]);
 
+  const handleSearch = useCallback(async (query: string) => {
+    setSearchQuery(query);
+    if (query.trim()) {
+      await searchWords(query.trim());
+    } else {
+      await getAllWords();
+    }
+  }, [searchWords, getAllWords]);
 
-import React, { useState, useEffect } from 'react';
-import { View, Text, FlatList, StyleSheet } from 'react-native';
-import { loadAllVocab } from '@/utils/vocabLoader';
-
-const VocabScreen = () => {
-  const [vocabList, setVocabList] = useState<any[]>([]);
-
+  // Load all words on first render after database is ready
   useEffect(() => {
-    setVocabList(loadAllVocab());
-  }, []);
+    const loadWordsWhenReady = async () => {
+      // Wait a bit for database initialization to complete
+      setTimeout(() => {
+        handleLoadWords();
+      }, 100);
+    };
 
-  const renderItem = ({ item }: { item: any }) => (
-    <View style={styles.item}>
-      <Text style={styles.word}>{item.word} ({item.pos})</Text>
-      <Text style={styles.phonetic}>{item.phonetic_text}</Text>
-      {item.senses?.length > 0 && (
-        <>
-          <Text style={styles.definition}>• {item.senses[0].definition}</Text>
-          {item.senses[0].examples?.slice(0, 2).map((ex: any, idx: number) => (
-            <Text key={idx} style={styles.example}>- {ex.x}</Text>
-          ))}
-        </>
-      )}
-    </View>
+    loadWordsWhenReady();
+  }, [handleLoadWords]);
+
+  // Refresh data when screen is focused
+  useFocusEffect(
+    useCallback(() => {
+      if (searchQuery.trim()) {
+        handleSearch(searchQuery);
+      } else {
+        handleLoadWords();
+      }
+    }, [searchQuery, handleSearch, handleLoadWords])
   );
 
+  const handleRefresh = useCallback(async () => {
+    setRefreshing(true);
+    try {
+      if (searchQuery.trim()) {
+        await searchWords(searchQuery.trim());
+      } else {
+        await getAllWords();
+      }
+    } catch (err) {
+      console.error('Refresh failed:', err);
+    } finally {
+      setRefreshing(false);
+    }
+  }, [searchQuery, searchWords, getAllWords]);
+
+  const handleToggleMastered = useCallback(async (wordId: number, currentStatus: boolean) => {
+    console.log('Toggling mastered status for word:', wordId, 'from', currentStatus, 'to', !currentStatus);
+
+    try {
+      const success = await updateMasteredStatus(wordId, !currentStatus);
+      if (success) {
+        console.log('Successfully updated mastered status for word:', wordId);
+      } else {
+        console.log('Failed to update mastered status for word:', wordId);
+        Alert.alert('Error', 'Failed to update word status');
+      }
+    } catch (err) {
+      console.error('Failed to update mastered status:', err);
+      Alert.alert('Error', 'Failed to update word status');
+    }
+  }, [updateMasteredStatus]);
+
+  const handleWordPress = useCallback((word: Word) => {
+    console.log('Navigating to word detail for:', word.word, 'ID:', word.id);
+    (navigation as any).navigate('VocabDetail', { wordId: word.id });
+  }, [navigation]);
+
+  const renderWordItem = useCallback(({ item }: { item: Word }) => (
+    <TouchableOpacity
+      onPress={() => handleWordPress(item)}
+      style={styles.wordItem}
+    >
+      <View style={styles.wordContent}>
+        <View style={styles.wordInfo}>
+          <Text style={styles.wordText}>
+            {item.word}
+          </Text>
+          <Text style={styles.posText}>
+            {item.pos}
+          </Text>
+          {item.phonetic_text && (
+            <Text style={styles.phoneticText}>
+              {item.phonetic_text}
+            </Text>
+          )}
+        </View>
+        <TouchableOpacity
+          onPress={(e) => {
+            e.stopPropagation(); // Prevent word item press
+            handleToggleMastered(item.id, item.mastered);
+          }}
+          style={item.mastered ? styles.starButtonMastered : styles.starButton}
+          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+        >
+          <Ionicons
+            name={item.mastered ? "star" : "star-outline"}
+            size={24}
+            color={item.mastered ? "#FCD34D" : "#D1D5DB"}
+          />
+        </TouchableOpacity>
+      </View>
+    </TouchableOpacity>
+  ), [handleWordPress, handleToggleMastered]);
+
+  const keyExtractor = useCallback((item: Word) => item.id.toString(), []);
+
+  if (error) {
+    return (
+      <View style={styles.errorContainer}>
+        <Ionicons name="alert-circle" size={64} color="#EF4444" />
+        <Text style={styles.errorTitle}>
+          Oops! Something went wrong
+        </Text>
+        <Text style={styles.errorMessage}>
+          {error}
+        </Text>
+        <TouchableOpacity
+          onPress={() => {
+            clearError();
+            handleLoadWords();
+          }}
+          style={styles.retryButton}
+        >
+          <Text style={styles.retryButtonText}>Try Again</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
+
   return (
-    <FlatList
-      data={vocabList}
-      keyExtractor={(item, index) => `${item.word}-${index}`}
-      renderItem={renderItem}
-    />
+    <View style={styles.container}>
+      {/* Search Bar */}
+      <View style={styles.searchContainer}>
+        <View style={styles.searchInputContainer}>
+          <Ionicons name="search" size={20} color="#9CA3AF" style={styles.searchIcon} />
+          <TextInput
+            style={styles.searchInput}
+            placeholder="Search vocabulary..."
+            placeholderTextColor="#9CA3AF"
+            value={searchQuery}
+            onChangeText={handleSearch}
+            returnKeyType="search"
+            autoCapitalize="none"
+            autoCorrect={false}
+          />
+          {searchQuery.length > 0 && (
+            <TouchableOpacity
+              onPress={() => handleSearch('')}
+              style={styles.clearButton}
+            >
+              <Ionicons name="close-circle" size={20} color="#9CA3AF" />
+            </TouchableOpacity>
+          )}
+        </View>
+      </View>
+
+      {/* Word Count */}
+      <View style={styles.countContainer}>
+        <Text style={styles.countText}>
+          {words.length} {searchQuery ? 'results' : 'words'}
+          {searchQuery && ` for "${searchQuery}"`}
+        </Text>
+      </View>
+
+      {isLoading && words.length === 0 ? (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#3B82F6" />
+          <Text style={styles.loadingText}>Loading vocabulary...</Text>
+        </View>
+      ) : (
+        <FlatList
+          data={words}
+          renderItem={renderWordItem}
+          keyExtractor={keyExtractor}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={handleRefresh}
+              colors={['#3B82F6']}
+            />
+          }
+          ListEmptyComponent={
+            <View style={styles.emptyContainer}>
+              <Ionicons name="search" size={64} color="#D1D5DB" />
+              <Text style={styles.emptyTitle}>
+                {searchQuery ? 'No words found' : 'No vocabulary available'}
+              </Text>
+              <Text style={styles.emptyMessage}>
+                {searchQuery
+                  ? 'Try searching with different keywords'
+                  : 'Check your internet connection and try again'
+                }
+              </Text>
+            </View>
+          }
+          showsVerticalScrollIndicator={false}
+          removeClippedSubviews={true}
+          maxToRenderPerBatch={10}
+          windowSize={10}
+        />
+      )}
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
-  item: { padding: 12, borderBottomWidth: 1, borderColor: '#ccc' },
-  word: { fontWeight: 'bold', fontSize: 18 },
-  phonetic: { fontStyle: 'italic' },
-  definition: { marginTop: 4 },
-  example: { marginLeft: 10, color: '#555' },
+  container: {
+    flex: 1,
+    backgroundColor: '#F9FAFB',
+  },
+  searchContainer: {
+    backgroundColor: 'white',
+    marginHorizontal: 16,
+    marginTop: 16,
+    marginBottom: 8,
+    padding: 12,
+    borderRadius: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  searchInputContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  searchIcon: {
+    marginRight: 8,
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: 16,
+    color: '#1F2937',
+  },
+  clearButton: {
+    marginLeft: 8,
+    padding: 4,
+  },
+  countContainer: {
+    marginHorizontal: 16,
+    marginBottom: 8,
+  },
+  countText: {
+    fontSize: 14,
+    color: '#6B7280',
+  },
+  wordItem: {
+    backgroundColor: 'white',
+    marginHorizontal: 16,
+    marginVertical: 8,
+    padding: 16,
+    borderRadius: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  wordContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  wordInfo: {
+    flex: 1,
+  },
+  wordText: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#1F2937',
+  },
+  posText: {
+    fontSize: 14,
+    color: '#6B7280',
+    marginTop: 4,
+  },
+  phoneticText: {
+    fontSize: 14,
+    color: '#3B82F6',
+    marginTop: 4,
+  },
+  starButton: {
+    marginLeft: 16,
+    padding: 8,
+  },
+  starButtonMastered: {
+    backgroundColor: '#FEF3C7',
+    borderRadius: 8,
+  },
+  errorContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 16,
+  },
+  errorTitle: {
+    fontSize: 20,
+    fontWeight: '600',
+    color: '#1F2937',
+    marginTop: 16,
+    textAlign: 'center',
+  },
+  errorMessage: {
+    fontSize: 16,
+    color: '#6B7280',
+    marginTop: 8,
+    textAlign: 'center',
+  },
+  retryButton: {
+    backgroundColor: '#3B82F6',
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 8,
+    marginTop: 16,
+  },
+  retryButtonText: {
+    color: 'white',
+    fontWeight: '600',
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loadingText: {
+    color: '#6B7280',
+    marginTop: 8,
+  },
+  emptyContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 32,
+  },
+  emptyTitle: {
+    fontSize: 20,
+    fontWeight: '600',
+    color: '#6B7280',
+    marginTop: 16,
+  },
+  emptyMessage: {
+    fontSize: 16,
+    color: '#9CA3AF',
+    marginTop: 8,
+    textAlign: 'center',
+  },
 });
 
-export default VocabScreen;
+export default Vocab;
