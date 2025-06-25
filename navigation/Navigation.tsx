@@ -10,7 +10,6 @@ export type RootStackParamList = {
     'StudyingHome': undefined;
     'Exercise': undefined;
     'Vocabulary': undefined;
-    'Grammar': undefined;
     'Writing': undefined;
     'Notification': undefined;
     'VocabDetail': { vocab: Vocab };
@@ -30,5 +29,7 @@ export type RootStackParamList = {
         sessionType: 'review' | 'new' | 'mixed';
         wordCount?: number;
     };
+    'Grammar': undefined;
+    'GrammarDetail': { subtitle: any };
 };
 

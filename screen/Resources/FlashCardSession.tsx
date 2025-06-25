@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
     View,
     Text,
@@ -6,7 +6,6 @@ import {
     TouchableOpacity,
     SafeAreaView,
     Alert,
-    ActivityIndicator,
     Modal,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
@@ -14,6 +13,12 @@ import { useNavigation, useRoute } from '@react-navigation/native';
 import { useOxfordDatabase } from '../../hooks/useOxfordDatabase';
 import { FlashCardWord } from '../../services/flashCardDatabase';
 import FlashCard from '../../components/ui/FlashCard';
+import OptimizedLoader from '../../components/ui/OptimizedLoader';
+import { useSelector, useDispatch } from 'react-redux';
+import { RootState } from '../../store/store';
+import { incrementProgress } from '../../store/userSlice';
+import { getStreakStatus } from '../../utils/streakHelper';
+
 
 interface SessionStats {
     total: number;
@@ -31,6 +36,10 @@ export default function FlashCardSession() {
     const navigation = useNavigation();
     const route = useRoute();
     const params = route.params as RouteParams;
+
+    // Redux selectors and dispatch
+    const dispatch = useDispatch();
+    const streak = useSelector((state: RootState) => state.user.streak);
 
     const {
         updateLearningStats,
@@ -52,12 +61,42 @@ export default function FlashCardSession() {
         skipped: 0,
     });
     const [showResults, setShowResults] = useState(false);
+    const [previousStreak, setPreviousStreak] = useState(streak);
+    const [isProcessing, setIsProcessing] = useState(false);
+
+    // Memoize current word to prevent unnecessary re-renders
+    const currentWord = useMemo(() => words[currentIndex] || null, [words, currentIndex]);
+
+    // Memoize session type title
+    const sessionTypeTitle = useMemo(() => {
+        switch (params.sessionType) {
+            case 'review': return 'Review Session';
+            case 'new': return 'Learn New Words';
+            case 'mixed': return 'Mixed Practice';
+            default: return 'Flashcard Session';
+        }
+    }, [params.sessionType]);
+
+    // Memoize accuracy calculation
+    const accuracyPercentage = useMemo(() => {
+        const attempted = sessionStats.correct + sessionStats.wrong;
+        if (attempted === 0) return 0;
+        return Math.round((sessionStats.correct / attempted) * 100);
+    }, [sessionStats.correct, sessionStats.wrong]);
+
+    // Memoize progress percentage
+    const progressPercentage = useMemo(() => {
+        if (words.length === 0) return 0;
+        return ((currentIndex + 1) / words.length) * 100;
+    }, [currentIndex, words.length]);
 
     const loadWords = useCallback(async () => {
         try {
             setIsLoading(true);
             const wordCount = params.wordCount || 20;
             let loadedWords: FlashCardWord[] = [];
+
+
 
             switch (params.sessionType) {
                 case 'review':
@@ -71,6 +110,10 @@ export default function FlashCardSession() {
                     break;
             }
 
+
+
+
+
             if (loadedWords.length === 0) {
                 Alert.alert(
                     'No Words Available',
@@ -82,8 +125,9 @@ export default function FlashCardSession() {
 
             setWords(loadedWords);
             setSessionStats(prev => ({ ...prev, total: loadedWords.length }));
-        } catch (error) {
-            console.error('Error loading words:', error);
+        } catch (err) {
+            console.error('Error loading words:', err);
+
             Alert.alert(
                 'Error',
                 'Failed to load words for the session. Please try again.',
@@ -92,8 +136,9 @@ export default function FlashCardSession() {
         } finally {
             setIsLoading(false);
         }
-    }, [params, getWordsForReview, getNewWordsForLearning, getMixedWordsForPractice, navigation]);
+    }, [params.sessionType, params.wordCount, getWordsForReview, getNewWordsForLearning, getMixedWordsForPractice, navigation]);
 
+    // Optimize database initialization check
     useEffect(() => {
         if (isDbReady) {
             loadWords();
@@ -102,9 +147,22 @@ export default function FlashCardSession() {
         }
     }, [isDbReady, loadWords, initializeDatabase]);
 
-    const handleAnswer = async (isCorrect: boolean) => {
-        const currentWord = words[currentIndex];
-        if (!currentWord) return;
+    // Track streak changes and show celebration
+    useEffect(() => {
+        if (streak > previousStreak && previousStreak > 0) {
+            Alert.alert(
+                '🎉 Chúc mừng!',
+                `Bạn đã hoàn thành mục tiêu học tập hôm nay! ${getStreakStatus(streak)}`,
+                [{ text: 'Tuyệt vời!', style: 'default' }]
+            );
+        }
+        setPreviousStreak(streak);
+    }, [streak, previousStreak]);
+
+    const handleAnswer = useCallback(async (isCorrect: boolean) => {
+        if (!currentWord || isProcessing) return;
+
+        setIsProcessing(true);
 
         try {
             await updateLearningStats(currentWord.id, isCorrect);
@@ -115,19 +173,30 @@ export default function FlashCardSession() {
                 wrong: prev.wrong + (isCorrect ? 0 : 1),
             }));
 
-            moveToNext();
+            // Track learning progress for new words only
+            if (params.sessionType === 'new' || (params.sessionType === 'mixed' && !currentWord.learning_stats)) {
+                // Increment progress in Redux
+                dispatch(incrementProgress());
+            }
+
+            // Small delay to prevent rapid clicking
+            setTimeout(() => {
+                moveToNext();
+                setIsProcessing(false);
+            }, 300);
         } catch (error) {
             console.error('Error updating learning stats:', error);
+            setIsProcessing(false);
             Alert.alert('Error', 'Failed to save your progress. Please try again.');
         }
-    };
+    }, [currentWord, isProcessing, updateLearningStats, params.sessionType, dispatch]);
 
-    const handleSkip = () => {
+    const handleSkip = useCallback(() => {
         setSessionStats(prev => ({ ...prev, skipped: prev.skipped + 1 }));
         moveToNext();
-    };
+    }, []);
 
-    const moveToNext = () => {
+    const moveToNext = useCallback(() => {
         setShowAnswer(false);
 
         if (currentIndex + 1 >= words.length) {
@@ -136,18 +205,18 @@ export default function FlashCardSession() {
         } else {
             setCurrentIndex(prev => prev + 1);
         }
-    };
+    }, [currentIndex, words.length]);
 
-    const handleToggleAnswer = () => {
+    const handleToggleAnswer = useCallback(() => {
         setShowAnswer(prev => !prev);
-    };
+    }, []);
 
-    const handleSessionComplete = () => {
+    const handleSessionComplete = useCallback(() => {
         setShowResults(false);
         navigation.goBack();
-    };
+    }, [navigation]);
 
-    const handleExitSession = () => {
+    const handleExitSession = useCallback(() => {
         Alert.alert(
             'Exit Session',
             'Are you sure you want to exit? Your progress will not be saved.',
@@ -156,30 +225,15 @@ export default function FlashCardSession() {
                 { text: 'Exit', style: 'destructive', onPress: () => navigation.goBack() },
             ]
         );
-    };
-
-    const getSessionTypeTitle = () => {
-        switch (params.sessionType) {
-            case 'review': return 'Review Session';
-            case 'new': return 'Learn New Words';
-            case 'mixed': return 'Mixed Practice';
-            default: return 'Flashcard Session';
-        }
-    };
-
-    const getAccuracyPercentage = () => {
-        const attempted = sessionStats.correct + sessionStats.wrong;
-        if (attempted === 0) return 0;
-        return Math.round((sessionStats.correct / attempted) * 100);
-    };
+    }, [navigation]);
 
     if (isLoading) {
         return (
             <SafeAreaView style={styles.container}>
-                <View style={styles.loadingContainer}>
-                    <ActivityIndicator size="large" color="#4A90E2" />
-                    <Text style={styles.loadingText}>Loading flashcards...</Text>
-                </View>
+                <OptimizedLoader
+                    isVisible={isLoading}
+                    sessionType={params.sessionType}
+                />
             </SafeAreaView>
         );
     }
@@ -210,14 +264,14 @@ export default function FlashCardSession() {
                 </TouchableOpacity>
 
                 <View style={styles.headerCenter}>
-                    <Text style={styles.sessionTitle}>{getSessionTypeTitle()}</Text>
+                    <Text style={styles.sessionTitle}>{sessionTypeTitle}</Text>
                     <Text style={styles.progressText}>
                         {currentIndex + 1} / {words.length}
                     </Text>
                 </View>
 
                 <View style={styles.accuracyContainer}>
-                    <Text style={styles.accuracyText}>{getAccuracyPercentage()}%</Text>
+                    <Text style={styles.accuracyText}>{accuracyPercentage}%</Text>
                 </View>
             </View>
 
@@ -226,20 +280,21 @@ export default function FlashCardSession() {
                 <View
                     style={[
                         styles.progressBar,
-                        { width: `${((currentIndex + 1) / words.length) * 100}%` }
+                        { width: `${progressPercentage}%` }
                     ]}
                 />
             </View>
 
             {/* FlashCard */}
             <View style={styles.cardContainer}>
-                {words[currentIndex] && (
+                {currentWord && (
                     <FlashCard
-                        word={words[currentIndex]}
+                        word={currentWord}
                         onAnswer={handleAnswer}
                         onSkip={handleSkip}
                         showAnswer={showAnswer}
                         onToggleAnswer={handleToggleAnswer}
+                        disabled={isProcessing}
                     />
                 )}
             </View>
@@ -285,7 +340,7 @@ export default function FlashCardSession() {
 
                         <View style={styles.accuracyResult}>
                             <Text style={styles.accuracyLabel}>Accuracy</Text>
-                            <Text style={styles.accuracyValue}>{getAccuracyPercentage()}%</Text>
+                            <Text style={styles.accuracyValue}>{accuracyPercentage}%</Text>
                         </View>
 
                         <TouchableOpacity
@@ -315,6 +370,12 @@ const styles = StyleSheet.create({
         marginTop: 16,
         fontSize: 16,
         color: '#6B7280',
+    },
+    loadingSubText: {
+        marginTop: 8,
+        fontSize: 14,
+        color: '#9CA3AF',
+        fontStyle: 'italic',
     },
     emptyContainer: {
         flex: 1,

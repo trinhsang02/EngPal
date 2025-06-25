@@ -1,13 +1,17 @@
-import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, ScrollView, StyleSheet, FlatList, Modal, Image } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, TextInput, TouchableOpacity, ScrollView, StyleSheet, Modal, Image } from 'react-native';
 import { Ionicons, MaterialIcons, FontAwesome5 } from '@expo/vector-icons';
 import { Header } from '../../components/ui/Header';
 import { RootStackParamList } from '../../navigation/Navigation';
 import { loadVocabByLetter } from '@/utils/vocabLoader';
 import { Vocab } from '@/types/vocab';
 import * as Speech from 'expo-speech';
-import { useSelector } from 'react-redux';
+import { useSelector, useDispatch } from 'react-redux';
 import { RootState } from '../../store/store';
+import { useOxfordDatabase } from '../../hooks/useOxfordDatabase';
+import { useFocusEffect } from '@react-navigation/native';
+import LearningGoalModal from '../../components/ui/LearningGoalModal';
+import { setGoal, setTodayProgress, loadLearningGoal, checkAndUpdateStreak } from '../../store/userSlice';
 
 const recentTags = ['truffle', 'moisture fresh', 'moisture', 'w...'];
 const resources = [
@@ -24,9 +28,38 @@ const resources = [
 
 export default function HomePage({ navigation }: { navigation: any }) {
   const user = useSelector((state: RootState) => state.user.user);
+  const dispatch = useDispatch();
   const [search, setSearch] = useState('');
   const [result, setResult] = useState<Vocab | null>(null);
   const [modalVisible, setModalVisible] = useState(false);
+  const [goalModalVisible, setGoalModalVisible] = useState(false);
+  const [wordsToReview, setWordsToReview] = useState<number>(0);
+  const [learnedToday, setLearnedToday] = useState<number>(0);
+  const { getStudyStatistics } = useOxfordDatabase();
+
+  useFocusEffect(
+    React.useCallback(() => {
+      const fetchStats = async () => {
+        try {
+          const stats = await getStudyStatistics();
+          setWordsToReview(stats.wordsToReview || 0);
+          setLearnedToday(stats.learnedToday || 0);
+          dispatch(setTodayProgress(stats.learnedToday || 0));
+          // Check and update streak when screen is focused
+          dispatch(checkAndUpdateStreak());
+        } catch (error) {
+          setWordsToReview(0);
+          setLearnedToday(0);
+          dispatch(setTodayProgress(0));
+        }
+      };
+      fetchStats();
+    }, [getStudyStatistics])
+  );
+
+  useEffect(() => {
+    dispatch(loadLearningGoal() as any);
+  }, [dispatch]);
 
   const handleSearch = () => {
     if (search.length > 0) {
@@ -44,6 +77,14 @@ export default function HomePage({ navigation }: { navigation: any }) {
       setResult(null);
       setModalVisible(false);
     }
+  };
+
+  const handleOpenGoalModal = () => {
+    setGoalModalVisible(true);
+  };
+
+  const handleSetGoal = (newGoal: number) => {
+    dispatch(setGoal(newGoal));
   };
 
   return (
@@ -111,10 +152,14 @@ export default function HomePage({ navigation }: { navigation: any }) {
       {user?.isLoggedIn ? (
         <View style={[styles.reviewBox, { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }]}>
           <View>
-            <Text style={styles.reviewTitle}>Đã đến lúc ôn tập</Text>
-            <Text style={styles.reviewCount}>5 từ</Text>
-            <TouchableOpacity style={styles.reviewBtn}>
-              <Text style={styles.reviewBtnText}>Ôn tập ngay</Text>
+            <Text style={styles.reviewTitle}>{wordsToReview === 0 ? "Không có từ cần ôn tập" : "Đã đến lúc ôn tập"}</Text>
+            <Text style={styles.reviewCount}>{wordsToReview} từ</Text>
+            <TouchableOpacity
+              style={[styles.reviewBtn, { backgroundColor: wordsToReview === 0 ? 'grey' : '#4285F4' }]}
+              disabled={wordsToReview === 0}
+              onPress={() => navigation.navigate('Studying' as keyof RootStackParamList)}
+            >
+              <Text style={styles.reviewBtnText}>{wordsToReview > 0 ? 'Ôn tập ngay' : 'Không có từ'}</Text>
             </TouchableOpacity>
           </View>
           <Image
@@ -155,9 +200,16 @@ export default function HomePage({ navigation }: { navigation: any }) {
       </View>
 
       {/* Floating Action Button */}
-      <TouchableOpacity style={styles.fab}>
+      <TouchableOpacity style={styles.fab} onPress={handleOpenGoalModal}>
         <Ionicons name="flame" size={28} color="#fff" />
       </TouchableOpacity>
+
+      {/* Learning Goal Modal */}
+      <LearningGoalModal
+        visible={goalModalVisible}
+        onClose={() => setGoalModalVisible(false)}
+        learnedToday={learnedToday}
+      />
     </ScrollView>
   );
 }

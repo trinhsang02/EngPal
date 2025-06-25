@@ -18,6 +18,7 @@ interface FlashCardProps {
     onSkip: () => void;
     showAnswer: boolean;
     onToggleAnswer: () => void;
+    disabled?: boolean;
 }
 
 const { width: screenWidth } = Dimensions.get('window');
@@ -27,7 +28,8 @@ export default function FlashCard({
     onAnswer,
     onSkip,
     showAnswer,
-    onToggleAnswer
+    onToggleAnswer,
+    disabled = false
 }: FlashCardProps) {
     const flipAnimation = useRef(new Animated.Value(0)).current;
     const [isFlipping, setIsFlipping] = useState(false);
@@ -192,38 +194,31 @@ export default function FlashCard({
                     style={[
                         styles.actionButton,
                         styles.wrongButton,
-                        !showAnswer && styles.disabledButton
+                        (!showAnswer || disabled) && styles.disabledButton
                     ]}
                     onPress={() => onAnswer(false)}
-                    disabled={!showAnswer}
+                    disabled={!showAnswer || disabled}
                 >
-                    <Ionicons name="thumbs-down" size={24} color={!showAnswer ? "#9CA3AF" : "#F59E0B"} />
-                    <Text style={[styles.actionButtonText, { color: !showAnswer ? "#9CA3AF" : "#F59E0B" }]}>Hard</Text>
+                    <Ionicons name="thumbs-down" size={24} color={(!showAnswer || disabled) ? "#9CA3AF" : "#F59E0B"} />
+                    <Text style={[styles.actionButtonText, { color: (!showAnswer || disabled) ? "#9CA3AF" : "#F59E0B" }]}>Hard</Text>
                 </TouchableOpacity>
 
                 <TouchableOpacity
                     style={[
                         styles.actionButton,
                         styles.correctButton,
-                        !showAnswer && styles.disabledButton
+                        (!showAnswer || disabled) && styles.disabledButton
                     ]}
                     onPress={() => onAnswer(true)}
-                    disabled={!showAnswer}
+                    disabled={!showAnswer || disabled}
                 >
-                    <Ionicons name="thumbs-up" size={24} color={!showAnswer ? "#9CA3AF" : "#10B981"} />
-                    <Text style={[styles.actionButtonText, { color: !showAnswer ? "#9CA3AF" : "#10B981" }]}>Easy</Text>
+                    <Ionicons name="thumbs-up" size={24} color={(!showAnswer || disabled) ? "#9CA3AF" : "#10B981"} />
+                    <Text style={[styles.actionButtonText, { color: (!showAnswer || disabled) ? "#9CA3AF" : "#10B981" }]}>Easy</Text>
                 </TouchableOpacity>
             </View>
 
             {/* Progress Stats */}
-            {/* {word.learning_stats && (
-                <View style={styles.statsContainer}>
-                    <Text style={styles.statsText}>
-                        Seen: {word.learning_stats.times_seen} |
-                        Correct: {word.learning_stats.times_correct}
-                    </Text>
-                </View>
-            )} */}
+
         </View>
     );
 }

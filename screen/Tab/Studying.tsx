@@ -194,7 +194,7 @@ export default function StudyingScreen() {
           {/* Review Card */}
           <View style={[styles.card, styles.reviewCard]}>
             <View style={styles.reviewTextContainer}>
-              <Ionicons name="information-circle" size={20} color="#4A90E2" style={{ marginRight: 8 }} />
+              {/* <Ionicons name="information-circle" size={20} color="#4A90E2" style={{ marginRight: 8 }} /> */}
               <ThemedText style={styles.reviewTitle}>
                 {studyData.wordsToReview > 0 ? 'Đã đến lúc ôn tập' : 'Không có từ cần ôn tập'}
               </ThemedText>

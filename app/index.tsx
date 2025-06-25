@@ -10,6 +10,8 @@ import StackNavigator from '@/navigation/StackNavigation';
 import { store } from '@/store/store';
 import { loadSavedState } from '@/store/userSlice';
 
+
+
 export default function App() {
     const colorScheme = useColorScheme();
     const [loaded] = useFonts({

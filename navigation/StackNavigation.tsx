@@ -13,6 +13,8 @@ import TopicsScreen from "@/screen/SubSetting/topics";
 import Review from "@/screen/Resources/Review";
 import Chat from "@/screen/Resources/Chat";
 import QuizScreen from "@/screen/Resources/QuizScreen";
+import Grammar from "@/screen/Resources/Grammar";
+import GrammarDetail from "@/screen/Resources/GrammarDetail";
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
@@ -33,6 +35,8 @@ export default function StackNavigator() {
             <Stack.Screen name="Review" component={Review} options={{ headerShown: true, headerTitle: 'Review' }} />
             <Stack.Screen name="Chat" component={Chat} options={{ headerShown: true, headerTitle: 'Chat' }} />
             <Stack.Screen name="QuizScreen" component={QuizScreen} options={{ headerShown: true, headerTitle: 'Làm bài tập' }} />
+            <Stack.Screen name="Grammar" component={Grammar} options={{ headerShown: false }} />
+            <Stack.Screen name="GrammarDetail" component={GrammarDetail} options={{ headerShown: false }} />
         </Stack.Navigator>
     );
 }
