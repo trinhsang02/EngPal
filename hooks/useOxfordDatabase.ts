@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import OxfordDatabaseService, { Word, WordDetail } from '../services/oxfordDatabase';
 import FlashCardDatabaseService, { FlashCardWord, StudyStatistics } from '../services/flashCardDatabase';
+import { databaseManager } from '../services/databaseManager';
 
 export const useOxfordDatabase = () => {
     const [isLoading, setIsLoading] = useState<boolean>(false);
@@ -12,28 +13,49 @@ export const useOxfordDatabase = () => {
     const dbService = OxfordDatabaseService.getInstance();
     const flashCardService = FlashCardDatabaseService.getInstance();
 
+    // Initialize database using the global manager
     const initializeDatabase = useCallback(async () => {
         try {
-            console.log('Hook: Starting database initialization');
             setIsLoading(true);
             setError(null);
-            await dbService.initDatabase();
-            await flashCardService.initializeTables();
-            setIsDbReady(true);
-            console.log('Hook: Database initialization completed');
+
+            await databaseManager.initialize();
+
+            // Check if initialization was successful
+            if (databaseManager.isReady()) {
+                setIsDbReady(true);
+            } else {
+                const state = databaseManager.getState();
+                throw new Error(state.error || 'Database initialization failed');
+            }
         } catch (err) {
             const errorMessage = err instanceof Error ? err.message : 'Database initialization failed';
             setError(errorMessage);
             setIsDbReady(false);
             console.error('Database initialization error:', err);
         } finally {
-            console.log('Hook: Database initialization finally block - setting isLoading to false');
             setIsLoading(false);
         }
     }, []);
 
+    // Subscribe to database manager state changes
+    useEffect(() => {
+        const unsubscribe = databaseManager.subscribe((state) => {
+            setIsDbReady(state.isInitialized && databaseManager.isReady());
+            setIsLoading(state.isInitializing);
+            setError(state.error);
+        });
+
+        return unsubscribe;
+    }, []);
+
     const searchWords = useCallback(async (query: string) => {
         try {
+            // Ensure database is ready
+            if (!databaseManager.isReady()) {
+                await databaseManager.waitForReady();
+            }
+
             setIsLoading(true);
             setError(null);
             const results = await dbService.searchWords(query);
@@ -51,16 +73,19 @@ export const useOxfordDatabase = () => {
 
     const getAllWords = useCallback(async () => {
         try {
-            console.log('Hook: Starting getAllWords, setting isLoading to true');
+            // Ensure database is ready
+            if (!databaseManager.isReady()) {
+                const isReady = await databaseManager.waitForReady();
+                if (!isReady) {
+                    throw new Error('Database failed to become ready');
+                }
+            }
+
             setIsLoading(true);
             setError(null);
 
-            console.log('Hook: Calling dbService.getAllWords()');
             const results = await dbService.getAllWords();
-            console.log('Hook: Received results:', results.length, 'words');
-
             setWords(results);
-            console.log('Hook: Updated words state, setting isLoading to false');
             return results;
         } catch (err) {
             const errorMessage = err instanceof Error ? err.message : 'Failed to get words';
@@ -68,13 +93,17 @@ export const useOxfordDatabase = () => {
             console.error('Get all words error:', err);
             return [];
         } finally {
-            console.log('Hook: Finally block - setting isLoading to false');
             setIsLoading(false);
         }
     }, []);
 
     const getWordDetail = useCallback(async (wordId: number) => {
         try {
+            // Ensure database is ready
+            if (!databaseManager.isReady()) {
+                await databaseManager.waitForReady();
+            }
+
             setIsLoading(true);
             setError(null);
             const result = await dbService.getWordDetail(wordId);
@@ -92,6 +121,11 @@ export const useOxfordDatabase = () => {
 
     const updateMasteredStatus = useCallback(async (wordId: number, isMastered: boolean) => {
         try {
+            // Ensure database is ready
+            if (!databaseManager.isReady()) {
+                await databaseManager.waitForReady();
+            }
+
             await dbService.updateWordMasteredStatus(wordId, isMastered);
 
             // Update local state
@@ -116,6 +150,11 @@ export const useOxfordDatabase = () => {
 
     const getRandomWords = useCallback(async (count: number = 10) => {
         try {
+            // Ensure database is ready
+            if (!databaseManager.isReady()) {
+                await databaseManager.waitForReady();
+            }
+
             setIsLoading(true);
             setError(null);
             const results = await dbService.getRandomWords(count);
@@ -132,6 +171,11 @@ export const useOxfordDatabase = () => {
 
     const getWordsForReview = useCallback(async (limit: number = 20): Promise<FlashCardWord[]> => {
         try {
+            // Ensure database is ready
+            if (!databaseManager.isReady()) {
+                await databaseManager.waitForReady();
+            }
+
             const result = await flashCardService.getWordsForReview(limit);
             return result;
         } catch (err) {
@@ -143,6 +187,11 @@ export const useOxfordDatabase = () => {
 
     const getNewWordsForLearning = useCallback(async (limit: number = 10): Promise<FlashCardWord[]> => {
         try {
+            // Ensure database is ready
+            if (!databaseManager.isReady()) {
+                await databaseManager.waitForReady();
+            }
+
             const result = await flashCardService.getNewWordsForLearning(limit);
             return result;
         } catch (err) {
@@ -154,6 +203,11 @@ export const useOxfordDatabase = () => {
 
     const getMixedWordsForPractice = useCallback(async (limit: number = 15): Promise<FlashCardWord[]> => {
         try {
+            // Ensure database is ready
+            if (!databaseManager.isReady()) {
+                await databaseManager.waitForReady();
+            }
+
             const result = await flashCardService.getMixedWordsForPractice(limit);
             return result;
         } catch (err) {
@@ -165,6 +219,11 @@ export const useOxfordDatabase = () => {
 
     const updateLearningStats = useCallback(async (wordId: number, isCorrect: boolean) => {
         try {
+            // Ensure database is ready
+            if (!databaseManager.isReady()) {
+                await databaseManager.waitForReady();
+            }
+
             const result = await flashCardService.updateLearningStats(wordId, isCorrect);
             if (result) {
                 // Refresh current words list if it exists
@@ -183,6 +242,11 @@ export const useOxfordDatabase = () => {
 
     const getStudyStatistics = useCallback(async (): Promise<StudyStatistics> => {
         try {
+            // Ensure database is ready
+            if (!databaseManager.isReady()) {
+                await databaseManager.waitForReady();
+            }
+
             const result = await flashCardService.getStudyStatistics();
             return result;
         } catch (err) {
@@ -194,6 +258,11 @@ export const useOxfordDatabase = () => {
 
     const getRecentWords = useCallback(async (limit: number = 5) => {
         try {
+            // Ensure database is ready
+            if (!databaseManager.isReady()) {
+                await databaseManager.waitForReady();
+            }
+
             const result = await flashCardService.getRecentWords(limit);
             return result;
         } catch (err) {
@@ -203,12 +272,35 @@ export const useOxfordDatabase = () => {
         }
     }, []);
 
-    // Initialize database on mount
+    // Manual recovery function using the database manager
+    const recoverDatabase = useCallback(async () => {
+        try {
+            console.log('Hook: Manual database recovery initiated');
+            setIsLoading(true);
+            setError(null);
+
+            await databaseManager.forceReset();
+            await databaseManager.initialize();
+
+            console.log('Hook: Manual database recovery completed');
+            return true;
+        } catch (err) {
+            const errorMessage = err instanceof Error ? err.message : 'Database recovery failed';
+            setError(errorMessage);
+            console.error('Database recovery error:', err);
+            return false;
+        } finally {
+            setIsLoading(false);
+        }
+    }, []);
+
+    // Initialize database on mount - but only once globally
     useEffect(() => {
         let isMounted = true;
 
         const initDB = async () => {
-            if (isMounted) {
+            if (isMounted && !databaseManager.getState().isInitialized && !databaseManager.getState().isInitializing) {
+                console.log('Hook: First mount - requesting database initialization');
                 await initializeDatabase();
             }
         };
@@ -218,7 +310,7 @@ export const useOxfordDatabase = () => {
         return () => {
             isMounted = false;
         };
-    }, []); // Remove initializeDatabase from dependencies to prevent re-initialization
+    }, []); // Only run once on mount
 
     return {
         // State
@@ -248,5 +340,8 @@ export const useOxfordDatabase = () => {
         clearError: () => setError(null),
         clearWords: () => setWords([]),
         clearCurrentWord: () => setCurrentWord(null),
+
+        // Manual recovery
+        recoverDatabase,
     };
 }; 

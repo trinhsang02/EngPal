@@ -34,12 +34,84 @@ export interface SessionStats {
     sessionType: 'review' | 'new' | 'mixed';
 }
 
+// Database operation wrapper to handle locking
+class DatabaseOperationQueue {
+    private static instance: DatabaseOperationQueue;
+    private operationQueue: Array<{
+        operation: () => Promise<any>;
+        resolve: (value: any) => void;
+        reject: (error: any) => void;
+    }> = [];
+    private isProcessing = false;
+
+    public static getInstance(): DatabaseOperationQueue {
+        if (!DatabaseOperationQueue.instance) {
+            DatabaseOperationQueue.instance = new DatabaseOperationQueue();
+        }
+        return DatabaseOperationQueue.instance;
+    }
+
+    async execute<T>(operation: () => Promise<T>): Promise<T> {
+        return new Promise((resolve, reject) => {
+            this.operationQueue.push({ operation, resolve, reject });
+            this.processQueue();
+        });
+    }
+
+    private async processQueue(): Promise<void> {
+        if (this.isProcessing || this.operationQueue.length === 0) {
+            return;
+        }
+
+        this.isProcessing = true;
+
+        while (this.operationQueue.length > 0) {
+            const { operation, resolve, reject } = this.operationQueue.shift()!;
+
+            try {
+                const result = await this.executeWithRetry(operation);
+                resolve(result);
+            } catch (error) {
+                reject(error);
+            }
+
+            // Small delay between operations to prevent rapid database access
+            await new Promise(resolve => setTimeout(resolve, 50));
+        }
+
+        this.isProcessing = false;
+    }
+
+    private async executeWithRetry<T>(operation: () => Promise<T>, maxRetries = 3): Promise<T> {
+        let lastError: any;
+
+        for (let attempt = 1; attempt <= maxRetries; attempt++) {
+            try {
+                return await operation();
+            } catch (error: any) {
+                lastError = error;
+
+                if (error.message?.includes('database is locked') && attempt < maxRetries) {
+                    await new Promise(resolve => setTimeout(resolve, 100 * attempt)); // Exponential backoff
+                    continue;
+                }
+
+                throw error;
+            }
+        }
+
+        throw lastError;
+    }
+}
+
 class FlashCardDatabaseService {
     private static instance: FlashCardDatabaseService;
     private dbConnection: DatabaseConnection;
+    private dbQueue: DatabaseOperationQueue;
 
     constructor() {
         this.dbConnection = DatabaseConnection.getInstance();
+        this.dbQueue = DatabaseOperationQueue.getInstance();
     }
 
     public static getInstance(): FlashCardDatabaseService {
@@ -50,10 +122,9 @@ class FlashCardDatabaseService {
     }
 
     /**
-     * Initialize tables (this is handled by the singleton DatabaseConnection)
+     * Initialize database tables
      */
     async initializeTables(): Promise<void> {
-        // The DatabaseConnection singleton handles table initialization
         await this.dbConnection.initializeDatabase();
     }
 
@@ -61,207 +132,233 @@ class FlashCardDatabaseService {
      * Get words that are due for review
      */
     async getWordsForReview(limit: number = 20): Promise<FlashCardWord[]> {
-        const today = new Date().toISOString().split('T')[0];
-        const db = await this.dbConnection.getConnection();
+        return this.dbQueue.execute(async () => {
+            const db = await this.dbConnection.getConnection();
+            const today = new Date().toISOString().split('T')[0];
 
-        const result = await db.getAllAsync(`
-            SELECT 
-                w.*,
-                ls.id as learning_id,
-                ls.memory_level,
-                ls.due_date,
-                ls.times_seen,
-                ls.times_correct,
-                ls.last_interval
-            FROM words w
-            INNER JOIN learning_stats ls ON w.id = ls.word_id
-            WHERE ls.due_date <= ? 
-                AND (w.mastered = 0 OR w.mastered IS NULL)
-                AND ls.times_seen > 0
-            ORDER BY 
-                ls.due_date ASC,
-                ls.memory_level ASC,
-                RANDOM()
-            LIMIT ?
-        `, [today, limit]);
+            const result = await db.getAllAsync(`
+                SELECT w.*, ls.id as learning_id, ls.memory_level, ls.due_date, 
+                       ls.times_seen, ls.times_correct, ls.last_interval
+                FROM words w
+                JOIN learning_stats ls ON w.id = ls.word_id
+                WHERE ls.due_date <= ? 
+                    AND (w.mastered = 0 OR w.mastered IS NULL)
+                    AND ls.times_seen > 0
+                ORDER BY ls.due_date ASC, ls.memory_level ASC
+                LIMIT ?
+            `, [today, limit]);
 
-        return await this.enrichWordsWithSenses(result as any[]);
+            return this.enrichWordsWithSenses(result);
+        });
     }
 
     /**
-     * Get new words that haven't been studied yet
+     * Get new words for learning (not yet studied)
      */
     async getNewWordsForLearning(limit: number = 10): Promise<FlashCardWord[]> {
-        const db = await this.dbConnection.getConnection();
+        return this.dbQueue.execute(async () => {
+            const db = await this.dbConnection.getConnection();
 
-        const result = await db.getAllAsync(`
-            SELECT w.*
-            FROM words w
-            LEFT JOIN learning_stats ls ON w.id = ls.word_id
-            WHERE ls.word_id IS NULL 
-                AND (w.mastered = 0 OR w.mastered IS NULL)
-            ORDER BY RANDOM()
-            LIMIT ?
-        `, [limit]);
+            const result = await db.getAllAsync(`
+                SELECT w.* FROM words w
+                LEFT JOIN learning_stats ls ON w.id = ls.word_id
+                WHERE ls.word_id IS NULL 
+                    AND (w.mastered = 0 OR w.mastered IS NULL)
+                ORDER BY RANDOM()
+                LIMIT ?
+            `, [limit]);
 
-        return await this.enrichWordsWithSenses(result as any[]);
+            return this.enrichWordsWithSenses(result);
+        });
     }
 
     /**
-     * Get a mix of review and new words for practice
+     * Get mixed words for practice (combination of new and review)
      */
     async getMixedWordsForPractice(limit: number = 15): Promise<FlashCardWord[]> {
-        const reviewLimit = Math.floor(limit * 0.7); // 70% review words
-        const newLimit = limit - reviewLimit; // 30% new words
+        return this.dbQueue.execute(async () => {
+            const db = await this.dbConnection.getConnection();
+            const today = new Date().toISOString().split('T')[0];
 
-        const [reviewWords, newWords] = await Promise.all([
-            this.getWordsForReview(reviewLimit),
-            this.getNewWordsForLearning(newLimit)
-        ]);
+            const reviewLimit = Math.floor(limit * 0.7); // 70% review words
+            const newLimit = limit - reviewLimit; // 30% new words
 
-        // Shuffle the combined array
-        const mixedWords = [...reviewWords, ...newWords];
-        for (let i = mixedWords.length - 1; i > 0; i--) {
-            const j = Math.floor(Math.random() * (i + 1));
-            [mixedWords[i], mixedWords[j]] = [mixedWords[j], mixedWords[i]];
-        }
+            // Optimized query using CTE for better performance
+            const result = await db.getAllAsync(`
+                WITH review_words AS (
+                    SELECT w.id, w.word, w.pos, w.phonetic, w.phonetic_text, 
+                           w.phonetic_am, w.phonetic_am_text, w.mastered,
+                           ls.id as learning_id, ls.memory_level, ls.due_date, 
+                           ls.times_seen, ls.times_correct, ls.last_interval,
+                           'review' as word_type
+                    FROM words w
+                    JOIN learning_stats ls ON w.id = ls.word_id
+                    WHERE ls.due_date <= ? 
+                        AND (w.mastered = 0 OR w.mastered IS NULL)
+                        AND ls.times_seen > 0
+                    ORDER BY RANDOM()
+                    LIMIT ?
+                ),
+                new_words AS (
+                    SELECT w.id, w.word, w.pos, w.phonetic, w.phonetic_text, 
+                           w.phonetic_am, w.phonetic_am_text, w.mastered,
+                           NULL as learning_id, 0 as memory_level, NULL as due_date,
+                           0 as times_seen, 0 as times_correct, 0 as last_interval,
+                           'new' as word_type
+                    FROM words w
+                    LEFT JOIN learning_stats ls ON w.id = ls.word_id
+                    WHERE ls.word_id IS NULL 
+                        AND (w.mastered = 0 OR w.mastered IS NULL)
+                    ORDER BY RANDOM()
+                    LIMIT ?
+                ),
+                combined_words AS (
+                    SELECT * FROM review_words
+                    UNION ALL
+                    SELECT * FROM new_words
+                )
+                SELECT * FROM combined_words
+                ORDER BY word_type, RANDOM()
+            `, [today, reviewLimit, newLimit]);
 
-        return mixedWords;
+            // Process results in a single pass
+            return this.enrichWordsWithSenses(result);
+        });
     }
 
     /**
-     * Update learning statistics after a flashcard attempt
+     * Update learning statistics for a word with transaction support and retry logic
      */
     async updateLearningStats(wordId: number, isCorrect: boolean): Promise<boolean> {
-        const db = await this.dbConnection.getConnection();
+        return this.dbQueue.execute(async () => {
+            const db = await this.dbConnection.getConnection();
 
-        try {
-            // Get current stats
-            const currentStats = await db.getFirstAsync(`
-                SELECT * FROM learning_stats WHERE word_id = ?
-            `, [wordId]) as WordLearningStats | null;
+            // Use a transaction to ensure atomicity and prevent locking
+            await db.withTransactionAsync(async () => {
+                // Get current stats
+                const currentStats = await db.getFirstAsync(`
+                    SELECT * FROM learning_stats WHERE word_id = ?
+                `, [wordId]) as WordLearningStats | null;
 
-            const now = new Date().toISOString();
+                const now = new Date().toISOString();
 
-            if (!currentStats) {
-                // First time learning this word
-                const memoryLevel = isCorrect ? 1 : 0;
-                const nextInterval = isCorrect ? 1 : 0; // Show again today if wrong, tomorrow if correct
-                const dueDate = new Date(Date.now() + nextInterval * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+                if (!currentStats) {
+                    // First time learning this word
+                    const memoryLevel = isCorrect ? 1 : 0;
+                    const nextInterval = isCorrect ? 1 : 0; // Show again today if wrong, tomorrow if correct
+                    const dueDate = new Date(Date.now() + nextInterval * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
 
-                await db.runAsync(`
-                    INSERT INTO learning_stats (
-                        word_id, memory_level, due_date, created_at, updated_at,
-                        times_seen, times_correct, last_interval
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-                `, [wordId, memoryLevel, dueDate, now, now, 1, isCorrect ? 1 : 0, nextInterval]);
-
-                console.log(`FlashCard DB: Created new learning stats for word ${wordId}, correct: ${isCorrect}`);
-            } else {
-                // Update existing stats
-                let newMemoryLevel = currentStats.memory_level;
-                let nextInterval = currentStats.last_interval;
-
-                if (isCorrect) {
-                    // Correct answer - increase memory level and interval
-                    newMemoryLevel = Math.min(6, currentStats.memory_level + 1);
-                    nextInterval = this.calculateNextInterval(newMemoryLevel);
-                } else {
-                    // Wrong answer - reset to level 0
-                    newMemoryLevel = 0;
-                    nextInterval = 0;
-                }
-
-                const dueDate = new Date(Date.now() + nextInterval * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
-
-                await db.runAsync(`
-                    UPDATE learning_stats 
-                    SET memory_level = ?, due_date = ?, updated_at = ?,
-                        times_seen = times_seen + 1, 
-                        times_correct = times_correct + ?,
-                        last_interval = ?
-                    WHERE word_id = ?
-                `, [newMemoryLevel, dueDate, now, isCorrect ? 1 : 0, nextInterval, wordId]);
-
-                // NEW: Tự động set mastered nếu memory_level đạt 6
-                if (newMemoryLevel === 6) {
                     await db.runAsync(`
-                        UPDATE words SET mastered = 1 WHERE id = ?
-                    `, [wordId]);
-                    console.log(`Word ${wordId} has been mastered automatically!`);
-                }
+                        INSERT INTO learning_stats (
+                            word_id, memory_level, due_date, created_at, updated_at,
+                            times_seen, times_correct, last_interval
+                        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                    `, [wordId, memoryLevel, dueDate, now, now, 1, isCorrect ? 1 : 0, nextInterval]);
+                } else {
+                    // Update existing stats
+                    let newMemoryLevel = currentStats.memory_level;
+                    let nextInterval = currentStats.last_interval;
 
-                console.log(`FlashCard DB: Updated learning stats for word ${wordId}, level: ${newMemoryLevel}, correct: ${isCorrect}`);
-            }
+                    if (isCorrect) {
+                        // Correct answer - increase memory level and interval
+                        newMemoryLevel = Math.min(6, currentStats.memory_level + 1);
+                        nextInterval = this.calculateNextInterval(newMemoryLevel);
+                    } else {
+                        // Wrong answer - reset to level 0
+                        newMemoryLevel = 0;
+                        nextInterval = 0;
+                    }
+
+                    const dueDate = new Date(Date.now() + nextInterval * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+
+                    await db.runAsync(`
+                        UPDATE learning_stats 
+                        SET memory_level = ?, due_date = ?, updated_at = ?,
+                            times_seen = times_seen + 1, 
+                            times_correct = times_correct + ?,
+                            last_interval = ?
+                        WHERE word_id = ?
+                    `, [newMemoryLevel, dueDate, now, isCorrect ? 1 : 0, nextInterval, wordId]);
+
+                    // Tự động set mastered nếu memory_level đạt 6
+                    if (newMemoryLevel === 6) {
+                        await db.runAsync(`
+                            UPDATE words SET mastered = 1 WHERE id = ?
+                        `, [wordId]);
+                    }
+                }
+            });
 
             return true;
-        } catch (error) {
-            console.error('FlashCard DB: Error updating learning stats:', error);
+        }).catch(error => {
+            console.error('Error updating learning stats:', error);
             return false;
-        }
+        });
     }
 
     /**
      * Get comprehensive study statistics
      */
     async getStudyStatistics(): Promise<StudyStatistics> {
-        const today = new Date().toISOString().split('T')[0];
-        const db = await this.dbConnection.getConnection();
+        return this.dbQueue.execute(async () => {
+            const today = new Date().toISOString().split('T')[0];
+            const db = await this.dbConnection.getConnection();
 
-        // Words learned today (first time seen or reviewed)
-        const learnedTodayResult = await db.getFirstAsync(`
-            SELECT COUNT(*) as count FROM learning_stats 
-            WHERE DATE(created_at) = ?
-        `, [today]) as { count: number };
+            // Words learned today (first time seen or reviewed)
+            const learnedTodayResult = await db.getFirstAsync(`
+                SELECT COUNT(*) as count FROM learning_stats 
+                WHERE DATE(created_at) = ?
+            `, [today]) as { count: number };
 
-        // Words due for review (only words that have been studied before)
-        const reviewResult = await db.getFirstAsync(`
-            SELECT COUNT(*) as count FROM learning_stats ls
-            JOIN words w ON ls.word_id = w.id
-            WHERE ls.due_date <= ? 
-                AND (w.mastered = 0 OR w.mastered IS NULL)
-                AND ls.times_seen > 0
-        `, [today]) as { count: number };
+            // Words due for review (only words that have been studied before)
+            const reviewResult = await db.getFirstAsync(`
+                SELECT COUNT(*) as count FROM learning_stats ls
+                JOIN words w ON ls.word_id = w.id
+                WHERE ls.due_date <= ? 
+                    AND (w.mastered = 0 OR w.mastered IS NULL)
+                    AND ls.times_seen > 0
+            `, [today]) as { count: number };
 
-        // Memory level distribution
-        const memoryLevelsResult = await db.getAllAsync(`
-            SELECT 
-                COALESCE(ls.memory_level, 0) as level,
-                COUNT(*) as count
-            FROM words w
-            LEFT JOIN learning_stats ls ON w.id = ls.word_id
-            WHERE (w.mastered = 0 OR w.mastered IS NULL)
-            GROUP BY COALESCE(ls.memory_level, 0)
-            ORDER BY level
-        `) as Array<{ level: number; count: number }>;
+            // Memory level distribution
+            const memoryLevelsResult = await db.getAllAsync(`
+                SELECT 
+                    COALESCE(ls.memory_level, 0) as level,
+                    COUNT(*) as count
+                FROM words w
+                LEFT JOIN learning_stats ls ON w.id = ls.word_id
+                WHERE (w.mastered = 0 OR w.mastered IS NULL)
+                GROUP BY COALESCE(ls.memory_level, 0)
+                ORDER BY level
+            `) as Array<{ level: number; count: number }>;
 
-        // Total and mastered words
-        const totalResult = await db.getFirstAsync(`
-            SELECT COUNT(*) as count FROM words
-        `) as { count: number };
+            // Total and mastered words
+            const totalResult = await db.getFirstAsync(`
+                SELECT COUNT(*) as count FROM words
+            `) as { count: number };
 
-        const masteredResult = await db.getFirstAsync(`
-            SELECT COUNT(*) as count FROM words WHERE mastered = 1
-        `) as { count: number };
+            const masteredResult = await db.getFirstAsync(`
+                SELECT COUNT(*) as count FROM words WHERE mastered = 1
+            `) as { count: number };
 
-        // Format memory levels with labels
-        const memoryLevels = Array.from({ length: 7 }, (_, i) => {
-            const found = memoryLevelsResult.find(m => m.level === i);
-            const labels = ['New', '1', '2', '3', '4', '5', 'Mastered'];
+            // Format memory levels with labels
+            const memoryLevels = Array.from({ length: 7 }, (_, i) => {
+                const found = memoryLevelsResult.find(m => m.level === i);
+                const labels = ['New', '1', '2', '3', '4', '5', 'Mastered'];
+                return {
+                    level: i,
+                    count: found?.count || 0,
+                    label: labels[i]
+                };
+            });
+
             return {
-                level: i,
-                count: found?.count || 0,
-                label: labels[i]
+                learnedToday: learnedTodayResult.count,
+                wordsToReview: reviewResult.count,
+                memoryLevels,
+                totalWords: totalResult.count,
+                masteredWords: masteredResult.count
             };
         });
-
-        return {
-            learnedToday: learnedTodayResult.count,
-            wordsToReview: reviewResult.count,
-            memoryLevels,
-            totalWords: totalResult.count,
-            masteredWords: masteredResult.count
-        };
     }
 
     /**
@@ -304,10 +401,9 @@ class FlashCardDatabaseService {
                 DELETE FROM learning_stats WHERE word_id = ?
             `, [wordId]);
 
-            console.log(`FlashCard DB: Reset learning progress for word ${wordId}`);
             return true;
         } catch (error) {
-            console.error('FlashCard DB: Error resetting word progress:', error);
+            console.error('Error resetting word progress:', error);
             return false;
         }
     }

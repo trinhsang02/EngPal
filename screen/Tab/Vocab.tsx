@@ -181,6 +181,11 @@ const Vocab: React.FC = () => {
 
   return (
     <View style={styles.container}>
+      {/* Back Button */}
+      <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+        <Ionicons name="arrow-back" size={24} color="black" />
+        <Text style={styles.backText}>Vocabulary</Text>
+      </TouchableOpacity>
       {/* Search Bar */}
       <View style={styles.searchContainer}>
         <View style={styles.searchInputContainer}>
@@ -259,6 +264,20 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#F9FAFB',
+  },
+  backButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 12,
+    marginLeft: 10,
+    marginBottom: 4,
+    alignSelf: 'flex-start',
+  },
+  backText: {
+    color: 'black',
+    fontSize: 25,
+    marginLeft: 10,
+    fontWeight: 'bold',
   },
   searchContainer: {
     backgroundColor: 'white',

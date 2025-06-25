@@ -174,9 +174,11 @@ export default function SettingsScreen() {
               <MaterialIcons name="keyboard-arrow-right" size={24} color="#bbb" />
             </View>
           </TouchableOpacity>
-          <Text style={styles.reminderNote}>
-            Bạn đang tắt thông báo nên không thể nhận được thông báo nhắc học. Bấm vào đây để mở lại
-          </Text>
+          {reminderEnabled === false && (
+            <Text style={styles.reminderNote}>
+              Bạn đang tắt thông báo nên không thể nhận được thông báo nhắc học. Bấm vào đây để mở lại
+            </Text>
+          )}
         </View>
         {showTimePicker && (
           <DateTimePicker
