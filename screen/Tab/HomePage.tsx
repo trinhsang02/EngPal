@@ -12,8 +12,8 @@ import { useOxfordDatabase } from '../../hooks/useOxfordDatabase';
 import { useFocusEffect } from '@react-navigation/native';
 import LearningGoalModal from '../../components/ui/LearningGoalModal';
 import { setGoal, setTodayProgress, loadLearningGoal, checkAndUpdateStreak } from '../../store/userSlice';
+import { Word } from '../../services/oxfordDatabase';
 
-const recentTags = ['truffle', 'moisture fresh', 'moisture', 'w...'];
 const resources = [
   { label: 'Vocabulary', icon: <MaterialIcons name="menu-book" size={34} color="#fff" />, color: '#FFB300', destination: 'Vocabulary' },
   { label: 'Bài tập', icon: <MaterialIcons name="assignment" size={34} color="#fff" />, color: '#00B8D4', destination: 'Exercise' },
@@ -35,7 +35,8 @@ export default function HomePage({ navigation }: { navigation: any }) {
   const [goalModalVisible, setGoalModalVisible] = useState(false);
   const [wordsToReview, setWordsToReview] = useState<number>(0);
   const [learnedToday, setLearnedToday] = useState<number>(0);
-  const { getStudyStatistics } = useOxfordDatabase();
+  const [randomWords, setRandomWords] = useState<Word[]>([]);
+  const { getStudyStatistics, getRandomWords } = useOxfordDatabase();
 
   useFocusEffect(
     React.useCallback(() => {
@@ -60,6 +61,14 @@ export default function HomePage({ navigation }: { navigation: any }) {
   useEffect(() => {
     dispatch(loadLearningGoal() as any);
   }, [dispatch]);
+
+  useEffect(() => {
+    const fetchRandom = async () => {
+      const words = await getRandomWords(5); // lấy 5 từ ngẫu nhiên
+      setRandomWords(words);
+    };
+    fetchRandom();
+  }, [getRandomWords]);
 
   const handleSearch = () => {
     if (search.length > 0) {
@@ -87,6 +96,20 @@ export default function HomePage({ navigation }: { navigation: any }) {
     dispatch(setGoal(newGoal));
   };
 
+  const handleRandomWordPress = (word: string) => {
+    setSearch(word);
+    const vocab = loadVocabByLetter(word[0]).find(
+      (v: Vocab) => v.word.toLowerCase() === word.toLowerCase()
+    );
+    if (vocab) {
+      setResult(vocab);
+      setModalVisible(true);
+    } else {
+      setResult(null);
+      setModalVisible(false);
+    }
+  };
+
   return (
     <ScrollView style={styles.container}>
       {/* Header */}
@@ -110,8 +133,14 @@ export default function HomePage({ navigation }: { navigation: any }) {
           <Ionicons name="mic-outline" size={20} color="#888" />
         </View>
         <View style={styles.tagsRow}>
-          {recentTags.map(tag => (
-            <View key={tag} style={styles.tag}><Text>{tag}</Text></View>
+          {randomWords.map(word => (
+            <TouchableOpacity
+              key={word.id}
+              style={styles.tag}
+              onPress={() => handleRandomWordPress(word.word)}
+            >
+              <Text>{word.word}</Text>
+            </TouchableOpacity>
           ))}
         </View>
       </View>

@@ -95,9 +95,6 @@ export default function FlashCardSession() {
             setIsLoading(true);
             const wordCount = params.wordCount || 20;
             let loadedWords: FlashCardWord[] = [];
-
-
-
             switch (params.sessionType) {
                 case 'review':
                     loadedWords = await getWordsForReview(wordCount);
@@ -145,7 +142,7 @@ export default function FlashCardSession() {
         } else {
             initializeDatabase();
         }
-    }, [isDbReady, loadWords, initializeDatabase]);
+    }, [isDbReady]);
 
     // Track streak changes and show celebration
     useEffect(() => {
@@ -191,21 +188,25 @@ export default function FlashCardSession() {
         }
     }, [currentWord, isProcessing, updateLearningStats, params.sessionType, dispatch]);
 
-    const handleSkip = useCallback(() => {
-        setSessionStats(prev => ({ ...prev, skipped: prev.skipped + 1 }));
-        moveToNext();
-    }, []);
-
     const moveToNext = useCallback(() => {
         setShowAnswer(false);
 
-        if (currentIndex + 1 >= words.length) {
-            // Session completed
-            setShowResults(true);
-        } else {
-            setCurrentIndex(prev => prev + 1);
-        }
-    }, [currentIndex, words.length]);
+        setCurrentIndex(prevIndex => {
+            // console.log('moveToNext:', { prevIndex, wordsLength: words.length });
+            if (prevIndex + 1 >= words.length) {
+                // Session completed
+                setShowResults(true);
+                return prevIndex;
+            } else {
+                return prevIndex + 1;
+            }
+        });
+    }, [words.length]);
+
+    const handleSkip = useCallback(() => {
+        setSessionStats(prev => ({ ...prev, skipped: prev.skipped + 1 }));
+        moveToNext();
+    }, [moveToNext]);
 
     const handleToggleAnswer = useCallback(() => {
         setShowAnswer(prev => !prev);
@@ -310,7 +311,7 @@ export default function FlashCardSession() {
                     <View style={styles.resultsContainer}>
                         <View style={styles.resultsHeader}>
                             <Ionicons name="trophy" size={48} color="#F59E0B" />
-                            <Text style={styles.resultsTitle}>Session Complete!</Text>
+                            <Text style={styles.resultsTitle}>Memory Progress</Text>
                         </View>
 
                         <View style={styles.statsGrid}>
@@ -322,13 +323,13 @@ export default function FlashCardSession() {
                                 <Text style={[styles.statValue, { color: '#10B981' }]}>
                                     {sessionStats.correct}
                                 </Text>
-                                <Text style={styles.statLabel}>Correct</Text>
+                                <Text style={styles.statLabel}>Remembered</Text>
                             </View>
                             <View style={styles.statItem}>
                                 <Text style={[styles.statValue, { color: '#F59E0B' }]}>
                                     {sessionStats.wrong}
                                 </Text>
-                                <Text style={styles.statLabel}>Wrong</Text>
+                                <Text style={styles.statLabel}>Still learning</Text>
                             </View>
                             <View style={styles.statItem}>
                                 <Text style={[styles.statValue, { color: '#6B7280' }]}>
