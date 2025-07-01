@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
     View,
     Text,
@@ -33,6 +33,12 @@ export default function FlashCard({
 }: FlashCardProps) {
     const flipAnimation = useRef(new Animated.Value(0)).current;
     const [isFlipping, setIsFlipping] = useState(false);
+
+    // Reset animation when word changes
+    useEffect(() => {
+        flipAnimation.setValue(0);
+        setIsFlipping(false);
+    }, [word.word, flipAnimation]);
 
     const handleFlip = () => {
         if (isFlipping) return;
@@ -194,26 +200,26 @@ export default function FlashCard({
                     style={[
                         styles.actionButton,
                         styles.wrongButton,
-                        (!showAnswer || disabled) && styles.disabledButton
+                        disabled && styles.disabledButton
                     ]}
                     onPress={() => onAnswer(false)}
-                    disabled={!showAnswer || disabled}
+                    disabled={disabled}
                 >
-                    <Ionicons name="thumbs-down" size={24} color={(!showAnswer || disabled) ? "#9CA3AF" : "#F59E0B"} />
-                    <Text style={[styles.actionButtonText, { color: (!showAnswer || disabled) ? "#9CA3AF" : "#F59E0B" }]}>Hard</Text>
+                    <Ionicons name="thumbs-down" size={24} color={disabled ? "#9CA3AF" : "#F59E0B"} />
+                    <Text style={[styles.actionButtonText, { color: disabled ? "#9CA3AF" : "#F59E0B" }]}>Hard</Text>
                 </TouchableOpacity>
 
                 <TouchableOpacity
                     style={[
                         styles.actionButton,
                         styles.correctButton,
-                        (!showAnswer || disabled) && styles.disabledButton
+                        disabled && styles.disabledButton
                     ]}
                     onPress={() => onAnswer(true)}
-                    disabled={!showAnswer || disabled}
+                    disabled={disabled}
                 >
-                    <Ionicons name="thumbs-up" size={24} color={(!showAnswer || disabled) ? "#9CA3AF" : "#10B981"} />
-                    <Text style={[styles.actionButtonText, { color: (!showAnswer || disabled) ? "#9CA3AF" : "#10B981" }]}>Easy</Text>
+                    <Ionicons name="thumbs-up" size={24} color={disabled ? "#9CA3AF" : "#10B981"} />
+                    <Text style={[styles.actionButtonText, { color: disabled ? "#9CA3AF" : "#10B981" }]}>Easy</Text>
                 </TouchableOpacity>
             </View>
 

@@ -244,7 +244,7 @@ export default function StudyingScreen() {
 
           {/* Recent Words */}
           <View style={styles.recentWordsContainer}>
-            <ThemedText style={styles.recentWordsTitle}>Các từ gần đây</ThemedText>
+            {/* <ThemedText style={styles.recentWordsTitle}>Các từ gần đây</ThemedText> */}
             {recentWords.length > 0 ? (
               <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 20 }}>
                 {recentWords.map((word, index) => (
