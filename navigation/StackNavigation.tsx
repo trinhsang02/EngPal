@@ -16,6 +16,7 @@ import QuizScreen from "@/screen/Resources/QuizScreen";
 import Grammar from "@/screen/Resources/Grammar";
 import GrammarDetail from "@/screen/Resources/GrammarDetail";
 import StoryScreen from "@/screen/Resources/StoryClean";
+import NativeLang from "@/screen/SubSetting/NativeLang";
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
@@ -39,6 +40,7 @@ export default function StackNavigator() {
             <Stack.Screen name="Grammar" component={Grammar} options={{ headerShown: false }} />
             <Stack.Screen name="GrammarDetail" component={GrammarDetail} options={{ headerShown: false }} />
             <Stack.Screen name="Story" component={StoryScreen} options={{ headerShown: false }} />
+            <Stack.Screen name="NativeLang" component={NativeLang} options={{ headerShown: false }} />
         </Stack.Navigator>
     );
 }

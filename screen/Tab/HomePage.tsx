@@ -20,10 +20,10 @@ const resources = [
   { label: 'Bài tập', icon: <MaterialIcons name="assignment" size={34} color="#fff" />, color: '#00B8D4', destination: 'Exercise' },
   { label: 'Ngữ pháp', icon: <FontAwesome5 name="graduation-cap" size={34} color="#fff" />, color: '#AB47BC', destination: 'Grammar' },
   { label: 'Review', icon: <Ionicons name="checkmark-circle" size={34} color="#fff" />, color: '#00C853', destination: 'Review' },
-  { label: 'Tư vấn', icon: <Ionicons name="chatbubble-ellipses" size={34} color="#fff" />, color: '#00C853', destination: 'Chat' },
-  { label: 'Game', icon: <FontAwesome5 name="gamepad" size={34} color="#fff" />, color: '#7E57C2', destination: 'Game' },
-  { label: 'News', icon: <Ionicons name="newspaper-outline" size={34} color="#fff" />, color: '#00C853', destination: 'Story' },
-  { label: 'Listening', icon: <Ionicons name="headset-outline" size={34} color="#fff" />, color: '#00C853', destination: 'Chat' },
+  { label: 'Chat', icon: <Ionicons name="chatbubble-ellipses" size={34} color="#fff" />, color: '#990000', destination: 'Chat' },
+  { label: 'Story', icon: <Ionicons name="newspaper-outline" size={34} color="#fff" />, color: '#00C', destination: 'Story' },
+  { label: 'Listening', icon: <Ionicons name="headset-outline" size={34} color="#fff" />, color: '#888888', destination: 'Chat' },
+  { label: 'Game', icon: <FontAwesome5 name="gamepad" size={34} color="#fff" />, color: '#FFCC00', destination: 'Game' },
   // Add more as needed
 ];
 
@@ -131,124 +131,218 @@ export default function HomePage({ navigation }: { navigation: any }) {
   };
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={{ paddingBottom: 100 }}>
-      {/* Header */}
-      <Header />
+    <View style={{ flex: 1 }}>
+      <ScrollView style={styles.container} contentContainerStyle={{ paddingBottom: 100 }}>
+        {/* Header */}
+        <Header />
 
-      {/* Dictionary Search */}
-      <View style={styles.section}>
-        <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>Từ điển</Text>
-          <Ionicons name="settings-outline" size={20} color="#888" />
+        {/* Dictionary Search */}
+        <View style={styles.section}>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>Từ điển</Text>
+            <Ionicons name="settings-outline" size={20} color="#888" />
+          </View>
+          <View style={styles.searchBar}>
+            <Ionicons name="search" size={20} color="#888" />
+            <TextInput
+              style={styles.input}
+              placeholder="Tra từ điển"
+              value={search}
+              onChangeText={setSearch}
+              onSubmitEditing={handleSearch}
+            />
+            <Ionicons name="mic-outline" size={20} color="#888" />
+          </View>
+          <View style={styles.tagsRow}>
+            {randomWords.map(word => (
+              <TouchableOpacity
+                key={word.id}
+                style={styles.tag}
+                onPress={() => handleRandomWordPress(word.word)}
+              >
+                <Text>{word.word}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
         </View>
-        <View style={styles.searchBar}>
-          <Ionicons name="search" size={20} color="#888" />
-          <TextInput
-            style={styles.input}
-            placeholder="Tra từ điển"
-            value={search}
-            onChangeText={setSearch}
-            onSubmitEditing={handleSearch}
-          />
-          <Ionicons name="mic-outline" size={20} color="#888" />
-        </View>
-        <View style={styles.tagsRow}>
-          {randomWords.map(word => (
-            <TouchableOpacity
-              key={word.id}
-              style={styles.tag}
-              onPress={() => handleRandomWordPress(word.word)}
-            >
-              <Text>{word.word}</Text>
-            </TouchableOpacity>
-          ))}
-        </View>
-      </View>
 
-      {/* Popup tra từ điển */}
-      <Modal
-        visible={modalVisible}
-        transparent
-        animationType="slide"
-        onRequestClose={() => setModalVisible(false)}
-      >
-        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.3)', justifyContent: 'flex-end', alignItems: 'center' }}>
-          <View style={{ backgroundColor: '#fff', borderRadius: 12, padding: 24, width: '85%', alignItems: 'center' }}>
-            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-              <Text style={{ fontWeight: 'bold', fontSize: 22 }}>{result?.word}</Text>
-              <TouchableOpacity onPress={() => Speech.speak(result?.word || '')} style={{ marginLeft: 8 }}>
-                <Ionicons name="volume-high" size={24} color="#2196f3" />
+        {/* Popup tra từ điển */}
+        <Modal
+          visible={modalVisible}
+          transparent
+          animationType="slide"
+          onRequestClose={() => setModalVisible(false)}
+        >
+          <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.3)', justifyContent: 'flex-end', alignItems: 'center' }}>
+            <View style={{ backgroundColor: '#fff', borderRadius: 12, padding: 24, width: '85%', alignItems: 'center' }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                <Text style={{ fontWeight: 'bold', fontSize: 22 }}>{result?.word}</Text>
+                <TouchableOpacity onPress={() => Speech.speak(result?.word || '')} style={{ marginLeft: 8 }}>
+                  <Ionicons name="volume-high" size={24} color="#2196f3" />
+                </TouchableOpacity>
+              </View>
+              <Text style={{ color: '#2196f3', fontWeight: 'bold', marginBottom: 4 }}>
+                {result?.pos?.toUpperCase()}
+              </Text>
+              <Text style={{ fontStyle: 'italic', color: '#888', marginBottom: 8 }}>{result?.phonetic_text}</Text>
+              <View>
+                {result?.senses?.map((sense, idx) => (
+                  <Text key={idx} style={{ marginTop: 4, fontSize: 16 }}>- {sense.definition}</Text>
+                ))}
+              </View>
+
+              <TouchableOpacity onPress={() => setModalVisible(false)}>
+                <Text style={{ color: '#2196f3', marginTop: 16, fontWeight: 'bold' }}>Đóng</Text>
               </TouchableOpacity>
             </View>
-            <Text style={{ color: '#2196f3', fontWeight: 'bold', marginBottom: 4 }}>
-              {result?.pos?.toUpperCase()}
-            </Text>
-            <Text style={{ fontStyle: 'italic', color: '#888', marginBottom: 8 }}>{result?.phonetic_text}</Text>
+          </View>
+        </Modal>
+
+        {/* Review Reminder */}
+        {user?.isLoggedIn ? (
+          <View style={[styles.reviewBox, { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }]}>
             <View>
-              {result?.senses?.map((sense, idx) => (
-                <Text key={idx} style={{ marginTop: 4, fontSize: 16 }}>- {sense.definition}</Text>
-              ))}
+              <Text style={styles.reviewTitle}>{wordsToReview === 0 ? "Không có từ cần ôn tập" : "Đã đến lúc ôn tập"}</Text>
+              <Text style={styles.reviewCount}>{wordsToReview} từ</Text>
+              <TouchableOpacity
+                style={[styles.reviewBtn, { backgroundColor: wordsToReview === 0 ? 'grey' : '#4285F4' }]}
+                disabled={wordsToReview === 0}
+                onPress={() => navigation.navigate('Studying' as keyof RootStackParamList)}
+              >
+                <Text style={styles.reviewBtnText}>{wordsToReview > 0 ? 'Ôn tập ngay' : 'Không có từ'}</Text>
+              </TouchableOpacity>
             </View>
-
-            <TouchableOpacity onPress={() => setModalVisible(false)}>
-              <Text style={{ color: '#2196f3', marginTop: 16, fontWeight: 'bold' }}>Đóng</Text>
+            <Image
+              source={require('../../assets/images/homework.png')}
+              style={{ width: 150, height: 150, marginLeft: 12 }}
+              resizeMode="contain"
+            />
+          </View>
+        ) : (
+          <View style={styles.loginPrompt}>
+            <Text style={styles.loginText}>Bạn chưa đăng nhập. Vui lòng đăng nhập để cá nhân hóa lộ trình học tập của bạn.</Text>
+            <TouchableOpacity style={styles.loginBtn} onPress={() => navigation.navigate('SignIn')}>
+              <Text style={styles.loginBtnText}>Đăng nhập</Text>
             </TouchableOpacity>
           </View>
-        </View>
-      </Modal>
+        )}
 
-      {/* Review Reminder */}
-      {user?.isLoggedIn ? (
-        <View style={[styles.reviewBox, { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }]}>
-          <View>
-            <Text style={styles.reviewTitle}>{wordsToReview === 0 ? "Không có từ cần ôn tập" : "Đã đến lúc ôn tập"}</Text>
-            <Text style={styles.reviewCount}>{wordsToReview} từ</Text>
-            <TouchableOpacity
-              style={[styles.reviewBtn, { backgroundColor: wordsToReview === 0 ? 'grey' : '#4285F4' }]}
-              disabled={wordsToReview === 0}
-              onPress={() => navigation.navigate('Studying' as keyof RootStackParamList)}
-            >
-              <Text style={styles.reviewBtnText}>{wordsToReview > 0 ? 'Ôn tập ngay' : 'Không có từ'}</Text>
-            </TouchableOpacity>
+        {/* Learning Resources */}
+        <View style={styles.section}>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>Nguồn học</Text>
+            <Text style={styles.link}>Cách học</Text>
           </View>
-          <Image
-            source={require('../../assets/images/homework.png')}
-            style={{ width: 150, height: 150, marginLeft: 12 }}
-            resizeMode="contain"
-          />
+          <View style={styles.resourcesGrid}>
+            {resources.map((res, idx) => (
+              <TouchableOpacity
+                key={idx}
+                style={styles.resourceItem}
+                onPress={() => navigation.navigate(res.destination as keyof RootStackParamList)}
+              >
+                <View style={[styles.iconCircle, { backgroundColor: res.color }]}>
+                  {res.icon}
+                </View>
+                <Text style={styles.resourceLabel}>{res.label}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
         </View>
-      ) : (
-        <View style={styles.loginPrompt}>
-          <Text style={styles.loginText}>Bạn chưa đăng nhập. Vui lòng đăng nhập để cá nhân hóa lộ trình học tập của bạn.</Text>
-          <TouchableOpacity style={styles.loginBtn} onPress={() => navigation.navigate('SignIn')}>
-            <Text style={styles.loginBtnText}>Đăng nhập</Text>
-          </TouchableOpacity>
-        </View>
-      )}
 
-      {/* Learning Resources */}
-      <View style={styles.section}>
-        <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>Nguồn học</Text>
-          <Text style={styles.link}>Cách học</Text>
-        </View>
-        <View style={styles.resourcesGrid}>
-          {resources.map((res, idx) => (
-            <TouchableOpacity
-              key={idx}
-              style={styles.resourceItem}
-              onPress={() => navigation.navigate(res.destination as keyof RootStackParamList)}
+        {/* Suggested Words */}
+        <View style={styles.section}>
+          <View style={styles.sectionHeader}>
+            <View
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                alignSelf: 'flex-start',
+                backgroundColor: '#f3f4f6',
+                borderRadius: 16,
+                paddingHorizontal: 12,
+                paddingVertical: 4,
+                marginBottom: 10,
+                marginTop: 8,
+              }}
             >
-              <View style={[styles.iconCircle, { backgroundColor: res.color }]}>
-                {res.icon}
-              </View>
-              <Text style={styles.resourceLabel}>{res.label}</Text>
-            </TouchableOpacity>
-          ))}
+              <Ionicons name="star-outline" size={16} color="#666" style={{ marginRight: 6 }} />
+              <Text style={{ color: '#444', fontWeight: '600', fontSize: 14 }}>Recommended for you</Text>
+            </View>
+          </View>
+          <View style={styles.tagsRow}>
+            {suggestedWords.map((wordObj, idx) => (
+              <TouchableOpacity
+                key={idx}
+                style={[
+                  styles.tag,
+                  {
+                    alignItems: 'flex-start',
+                    justifyContent: 'center',
+                    padding: 16,
+                    width: 400,
+                    height: 110,
+                    margin: 8,
+                    backgroundColor: '#fff',
+                    borderRadius: 18,
+                    borderWidth: 1,
+                    borderColor: '#e3e6ed',
+                    shadowColor: '#000',
+                    shadowOpacity: 0.06,
+                    shadowRadius: 8,
+                    elevation: 2,
+                  },
+                ]}
+                activeOpacity={0.85}
+                onPress={() => {
+                  Speech.speak(wordObj.word, { language: wordObj.phonetic_am ? 'en-US' : 'en-GB' });
+                }}
+              >
+                <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 4 }}>
+                  <Text style={{ fontWeight: 'bold', fontSize: 20, color: '#222', marginRight: 6 }}>
+                    {wordObj.word}
+                  </Text>
+                  <View style={{
+                    backgroundColor: wordObj.pos === 'verb' ? '#e3f0ff' : '#ffe3e3',
+                    borderRadius: 8,
+                    paddingHorizontal: 8,
+                    paddingVertical: 2,
+                    marginRight: 6,
+                  }}>
+                    <Text style={{ color: '#4285F4', fontSize: 13 }}>{wordObj.pos}</Text>
+                  </View>
+                  {wordObj.phonetic_text && (
+                    <Text style={{ color: '#888', fontSize: 14, fontFamily: 'monospace', marginRight: 4 }}>
+                      {wordObj.phonetic_text}
+                    </Text>
+                  )}
+                  <TouchableOpacity
+                    onPress={() => Speech.speak(wordObj.word, { language: wordObj.phonetic_am ? 'en-US' : 'en-GB' })}
+                    style={{ marginLeft: 2, padding: 2, borderRadius: 12 }}
+                  >
+                    <Ionicons name="volume-high-outline" size={18} color="#4285F4" />
+                  </TouchableOpacity>
+                </View>
+                {wordObj.senses && wordObj.senses.length > 0 && (
+                  <View>
+                    <Text style={{ color: '#444', fontSize: 15, fontStyle: 'italic' }} numberOfLines={2}>
+                      {wordObj.senses[0].definition}
+                    </Text>
+                    {wordObj.senses[0].examples && wordObj.senses[0].examples.length > 0 && (
+                      <Text style={{ color: '#888', fontSize: 13, marginTop: 2 }} numberOfLines={1}>
+                        ❝{wordObj.senses[0].examples[0].x}❞
+                      </Text>
+                    )}
+                  </View>
+                )}
+              </TouchableOpacity>
+            ))}
+          </View>
         </View>
-      </View>
 
-      {/* Floating Action Button */}
+
+      </ScrollView>
+
+      {/* Floating Action Button - Outside ScrollView */}
       <TouchableOpacity style={styles.fab} onPress={handleOpenGoalModal}>
         <Ionicons name="flame" size={28} color="#fff" />
       </TouchableOpacity>
@@ -259,99 +353,7 @@ export default function HomePage({ navigation }: { navigation: any }) {
         onClose={() => setGoalModalVisible(false)}
         learnedToday={learnedToday}
       />
-
-      {/* Suggested Words */}
-      {/* <View style={styles.section}>
-        <View style={styles.sectionHeader}>
-          <View
-            style={{
-              flexDirection: 'row',
-              alignItems: 'center',
-              alignSelf: 'flex-start',
-              backgroundColor: '#f3f4f6',
-              borderRadius: 16,
-              paddingHorizontal: 12,
-              paddingVertical: 4,
-              marginBottom: 10,
-              marginTop: 8,
-            }}
-          >
-            <Ionicons name="star-outline" size={16} color="#666" style={{ marginRight: 6 }} />
-            <Text style={{ color: '#444', fontWeight: '600', fontSize: 14 }}>Recommended for you</Text>
-          </View>
-        </View>
-        <View style={styles.tagsRow}>
-          {suggestedWords.map((wordObj, idx) => (
-            <TouchableOpacity
-              key={idx}
-              style={[
-                styles.tag,
-                {
-                  alignItems: 'flex-start',
-                  justifyContent: 'center',
-                  padding: 16,
-                  width: 400,
-                  height: 110,
-                  margin: 8,
-                  backgroundColor: '#fff',
-                  borderRadius: 18,
-                  borderWidth: 1,
-                  borderColor: '#e3e6ed',
-                  shadowColor: '#000',
-                  shadowOpacity: 0.06,
-                  shadowRadius: 8,
-                  elevation: 2,
-                },
-              ]}
-              activeOpacity={0.85}
-              onPress={() => {
-                Speech.speak(wordObj.word, { language: wordObj.phonetic_am ? 'en-US' : 'en-GB' });
-              }}
-            >
-              <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 4 }}>
-                <Text style={{ fontWeight: 'bold', fontSize: 20, color: '#222', marginRight: 6 }}>
-                  {wordObj.word}
-                </Text>
-                <View style={{
-                  backgroundColor: wordObj.pos === 'verb' ? '#e3f0ff' : '#ffe3e3',
-                  borderRadius: 8,
-                  paddingHorizontal: 8,
-                  paddingVertical: 2,
-                  marginRight: 6,
-                }}>
-                  <Text style={{ color: '#4285F4', fontSize: 13 }}>{wordObj.pos}</Text>
-                </View>
-                {wordObj.phonetic_text && (
-                  <Text style={{ color: '#888', fontSize: 14, fontFamily: 'monospace', marginRight: 4 }}>
-                    {wordObj.phonetic_text}
-                  </Text>
-                )}
-                <TouchableOpacity
-                  onPress={() => Speech.speak(wordObj.word, { language: wordObj.phonetic_am ? 'en-US' : 'en-GB' })}
-                  style={{ marginLeft: 2, padding: 2, borderRadius: 12 }}
-                >
-                  <Ionicons name="volume-high-outline" size={18} color="#4285F4" />
-                </TouchableOpacity>
-              </View>
-              {wordObj.senses && wordObj.senses.length > 0 && (
-                <View>
-                  <Text style={{ color: '#444', fontSize: 15, fontStyle: 'italic' }} numberOfLines={2}>
-                    {wordObj.senses[0].definition}
-                  </Text>
-                  {wordObj.senses[0].examples && wordObj.senses[0].examples.length > 0 && (
-                    <Text style={{ color: '#888', fontSize: 13, marginTop: 2 }} numberOfLines={1}>
-                      ❝{wordObj.senses[0].examples[0].x}❞
-                    </Text>
-                  )}
-                </View>
-              )}
-            </TouchableOpacity>
-          ))}
-        </View>
-      </View> */}
-
-
-    </ScrollView>
+    </View>
   );
 }
 
@@ -389,7 +391,7 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     marginTop: 4,
   },
-  fab: { position: 'absolute', bottom: -50, right: 24, backgroundColor: '#00CFFF', borderRadius: 32, width: 56, height: 56, alignItems: 'center', justifyContent: 'center', elevation: 4 },
+  fab: { position: 'absolute', bottom: 80, right: 24, backgroundColor: '#00CFFF', borderRadius: 32, width: 56, height: 56, alignItems: 'center', justifyContent: 'center', elevation: 8, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.25, shadowRadius: 4 },
   loginPrompt: { alignItems: 'center', justifyContent: 'center', marginBottom: 24 },
   loginText: { color: '#333', marginBottom: 16 },
   loginBtn: { backgroundColor: '#4285F4', borderRadius: 24, paddingHorizontal: 32, paddingVertical: 12 },

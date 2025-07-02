@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { View, Text, TextInput, TouchableOpacity, FlatList, KeyboardAvoidingView, Platform, StyleSheet, ActivityIndicator } from 'react-native';
 import { getChatbotResponse } from '../../services/chatbot';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import Markdown from 'react-native-markdown-display';
 
 interface Message {
     id: string;
@@ -10,6 +11,13 @@ interface Message {
 }
 
 const CHAT_HISTORY_KEY = 'CHAT_HISTORY';
+
+function stripMarkdownKeepBullets(text: string) {
+    // Loại bỏ ** nhưng giữ dấu * đầu dòng
+    return text
+        .replace(/\*\*(.*?)\*\*/g, '$1')
+        .replace(/\*(?!\s)/g, ''); // chỉ bỏ * không phải đầu dòng
+}
 
 function Chat() {
     const [messages, setMessages] = useState<Message[]>([]);
@@ -66,7 +74,16 @@ function Chat() {
 
     const renderItem = ({ item }: { item: Message }) => (
         <View style={[styles.messageContainer, item.sender === 'user' ? styles.userMsg : styles.aiMsg]}>
-            <Text style={styles.messageText}>{item.text}</Text>
+            <Markdown
+                style={{
+                    body: styles.messageText,
+                    strong: { fontWeight: 'bold', color: '#222' },
+                    bullet_list: { marginLeft: 10 },
+                    list_item: { flexDirection: 'row', alignItems: 'flex-start' },
+                }}
+            >
+                {stripMarkdownKeepBullets(item.text)}
+            </Markdown>
         </View>
     );
 
@@ -111,7 +128,7 @@ const styles = StyleSheet.create({
     },
     aiMsg: {
         alignSelf: 'flex-start',
-        backgroundColor: '#fff',
+        backgroundColor: '#f0f0f0',
         borderWidth: 1,
         borderColor: '#ddd',
     },

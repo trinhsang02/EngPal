@@ -18,7 +18,7 @@ import { registerApi } from '@/services/authentication';
 // Placeholder for icons
 const CalendarIcon = () => <Text style={{ fontSize: 18 }}>📅</Text>;
 const EyeIcon = () => <Text style={{ fontSize: 18 }}>👁️</Text>;
-const FlagIcon = () => <Text style={{ fontSize: 18 }}>🇺🇸</Text>;
+const FlagIcon = () => <Text style={{ fontSize: 18 }}>VN</Text>;
 const GoogleIcon = () => <Text style={{ fontSize: 18 }}>🟢</Text>;
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList, 'SignUp'>;
@@ -29,7 +29,7 @@ export default function SignUpScreen() {
   const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
   const [dob, setDob] = useState('');
-  const [countryCode, setCountryCode] = useState('+1');
+  const [countryCode, setCountryCode] = useState('+84');
   const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -38,6 +38,7 @@ export default function SignUpScreen() {
     try {
       const response = await registerApi(email, password);
       console.log('Sign up successful:', response);
+      navigation.navigate('SignIn');
     } catch (error) {
       console.error('Sign up failed:', error);
     }
@@ -87,7 +88,7 @@ export default function SignUpScreen() {
           <View style={styles.inputWithIcon}>
             <TextInput
               style={[styles.input, { flex: 1, marginBottom: 0 }]}
-              placeholder="18/03/2024"
+              placeholder="dd/mm/yyyy"
               value={dob}
               onChangeText={setDob}
             />
@@ -102,7 +103,7 @@ export default function SignUpScreen() {
             </TouchableOpacity>
             <TextInput
               style={[styles.input, { flex: 1, marginLeft: 8, marginBottom: 0 }]}
-              placeholder="(454) 726-0592"
+              placeholder="Phone Number"
               value={phone}
               onChangeText={setPhone}
               keyboardType="phone-pad"
@@ -121,7 +122,7 @@ export default function SignUpScreen() {
             </TouchableOpacity>
           </View>
           <TouchableOpacity style={styles.loginButton} onPress={handleSignUp}>
-            <Text style={styles.loginButtonText}>Log In</Text>
+            <Text style={styles.loginButtonText}>Sign up</Text>
           </TouchableOpacity>
           <View style={styles.orRow}>
             <View style={styles.orLine} />
@@ -181,7 +182,7 @@ const styles = StyleSheet.create({
   formContainer: {
     backgroundColor: '#fff',
     marginHorizontal: 20,
-    marginTop: -40,
+    marginTop: -20,
     borderRadius: 20,
     padding: 20,
     shadowColor: '#000',

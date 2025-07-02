@@ -1,11 +1,11 @@
 {
   "expo": {
-    "name": "learingEnglish",
-    "slug": "learingEnglish",
+    "name": "EngPal",
+    "slug": "EngPal",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/icon.png",
-    "scheme": "learingenglish",
+    "icon": "./assets/images/EngPal_logo.png",
+    "scheme": "EngPal",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "assetBundlePatterns": [
