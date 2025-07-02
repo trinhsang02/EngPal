@@ -1,7 +1,7 @@
 import { Story, Chapter } from '../types/story';
 
 // MangaDex API base URL
-const MANGADEX_API_BASE = 'https://api.mangadex.org';
+const MANGADEX_API_BASE = 'http://10.0.2.2:8080/api/mangadex';
 
 // MangaDex API endpoints
 const ENDPOINTS = {
@@ -13,6 +13,7 @@ const ENDPOINTS = {
     TAG: '/tag',
     USER: '/user',
     AUTH: '/auth',
+    AT_HOME: '/at-home/server',
 } as const;
 
 // MangaDex API response types
@@ -30,7 +31,7 @@ interface MangaDexManga {
             'zh-ro'?: string;
             'zh-tw'?: string;
         };
-        altTitles: Array<{
+        altTitles: {
             en?: string;
             ja?: string;
             'ja-ro'?: string;
@@ -39,7 +40,7 @@ interface MangaDexManga {
             'zh-hk'?: string;
             'zh-ro'?: string;
             'zh-tw'?: string;
-        }>;
+        }[];
         description: {
             en?: string;
             ja?: string;
@@ -53,7 +54,7 @@ interface MangaDexManga {
         status: 'ongoing' | 'completed' | 'hiatus' | 'cancelled';
         year?: number;
         contentRating: 'safe' | 'suggestive' | 'erotica' | 'pornographic';
-        tags: Array<{
+        tags: {
             id: string;
             type: 'tag';
             attributes: {
@@ -62,17 +63,17 @@ interface MangaDexManga {
                 };
                 group: string;
             };
-        }>;
+        }[];
         originalLanguage: string;
         lastVolume?: string;
         lastChapter?: string;
         publicationDemographic?: 'shounen' | 'shoujo' | 'josei' | 'seinen';
     };
-    relationships: Array<{
+    relationships: {
         id: string;
         type: string;
         attributes?: any;
-    }>;
+    }[];
 }
 
 interface MangaDexChapter {
@@ -89,12 +90,33 @@ interface MangaDexChapter {
         updatedAt: string;
         externalUrl?: string;
         version: number;
+        translatedLanguage: string;
     };
-    relationships: Array<{
+    relationships: {
         id: string;
         type: string;
-        attributes?: any;
-    }>;
+        attributes?: {
+            name?: string;
+            username?: string;
+            fileName?: string;
+        };
+    }[];
+}
+
+interface ChapterDetail {
+    id: string;
+    title: string;
+    volume?: string;
+    chapter: string;
+    pages: number;
+    publishAt: Date;
+    translatedLanguage: string;
+    scanlationGroup?: string;
+    uploader?: string;
+    externalUrl?: string;
+    version: number;
+    mangaId: string;
+    mangaTitle: string;
 }
 
 interface MangaDexResponse<T> {
@@ -110,116 +132,6 @@ class MangaDexService {
     private accessToken: string | null = null;
     private refreshToken: string | null = null;
     private isApiBlocked: boolean = false;
-
-    // Fallback mock data khi API bị chặn
-    private getMockStories(): Story[] {
-        return [
-            {
-                id: 'mock-1',
-                title: 'One Piece',
-                author: 'Eiichiro Oda',
-                cover: 'https://images.unsplash.com/photo-1578662996442-48f60103fc96?w=400',
-                description: 'Follow Monkey D. Luffy and his crew as they search for the ultimate treasure, One Piece, to become the next Pirate King.',
-                level: 'Intermediate',
-                chapters: 1000,
-                rating: 4.9,
-                readCount: 500000,
-                tags: ['Adventure', 'Comedy', 'Shounen'],
-                status: 'Ongoing'
-            },
-            {
-                id: 'mock-2',
-                title: 'Attack on Titan',
-                author: 'Hajime Isayama',
-                cover: 'https://images.unsplash.com/photo-1578662996442-48f60103fc96?w=400',
-                description: 'Humanity fights for survival against giant humanoid Titans in this dark fantasy series.',
-                level: 'Advanced',
-                chapters: 139,
-                rating: 4.8,
-                readCount: 300000,
-                tags: ['Action', 'Drama', 'Fantasy'],
-                status: 'Completed'
-            },
-            {
-                id: 'mock-3',
-                title: 'My Hero Academia',
-                author: 'Kohei Horikoshi',
-                cover: 'https://images.unsplash.com/photo-1578662996442-48f60103fc96?w=400',
-                description: 'In a world where superpowers are common, a boy without powers dreams of becoming a hero.',
-                level: 'Intermediate',
-                chapters: 400,
-                rating: 4.7,
-                readCount: 250000,
-                tags: ['Superhero', 'School', 'Shounen'],
-                status: 'Ongoing'
-            },
-            {
-                id: 'mock-4',
-                title: 'Demon Slayer',
-                author: 'Koyoharu Gotouge',
-                cover: 'https://images.unsplash.com/photo-1578662996442-48f60103fc96?w=400',
-                description: 'A young boy becomes a demon slayer to save his sister and avenge his family.',
-                level: 'Intermediate',
-                chapters: 205,
-                rating: 4.9,
-                readCount: 400000,
-                tags: ['Action', 'Supernatural', 'Historical'],
-                status: 'Completed'
-            },
-            {
-                id: 'mock-5',
-                title: 'Naruto',
-                author: 'Masashi Kishimoto',
-                cover: 'https://images.unsplash.com/photo-1578662996442-48f60103fc96?w=400',
-                description: 'Follow the journey of Naruto Uzumaki as he trains to become a ninja and pursues his dream of becoming Hokage.',
-                level: 'Intermediate',
-                chapters: 700,
-                rating: 4.8,
-                readCount: 600000,
-                tags: ['Ninja', 'Adventure', 'Shounen'],
-                status: 'Completed'
-            }
-        ];
-    }
-
-    private getMockChapters(storyId: string): Chapter[] {
-        return [
-            {
-                id: `${storyId}-ch1`,
-                title: 'Chapter 1: The Beginning',
-                content: 'Mock content for chapter 1. This is a sample story content to demonstrate the reading functionality.',
-                chapterNumber: 1,
-                wordCount: 500,
-                difficulty: 'Intermediate'
-            },
-            {
-                id: `${storyId}-ch2`,
-                title: 'Chapter 2: First Adventure',
-                content: 'Mock content for chapter 2. The adventure continues with new challenges and discoveries.',
-                chapterNumber: 2,
-                wordCount: 550,
-                difficulty: 'Intermediate'
-            },
-            {
-                id: `${storyId}-ch3`,
-                title: 'Chapter 3: New Challenges',
-                content: 'Mock content for chapter 3. Our heroes face their greatest challenge yet.',
-                chapterNumber: 3,
-                wordCount: 480,
-                difficulty: 'Advanced'
-            }
-        ];
-    }
-
-    private getMockPages(): string[] {
-        return [
-            'https://via.placeholder.com/800x1200/CCCCCC/FFFFFF?text=Page+1',
-            'https://via.placeholder.com/800x1200/DDDDDD/FFFFFF?text=Page+2',
-            'https://via.placeholder.com/800x1200/EEEEEE/FFFFFF?text=Page+3',
-            'https://via.placeholder.com/800x1200/CCCCCC/FFFFFF?text=Page+4',
-            'https://via.placeholder.com/800x1200/DDDDDD/FFFFFF?text=Page+5'
-        ];
-    }
 
     // Authentication methods
     async authenticate(username: string, password: string): Promise<boolean> {
@@ -288,6 +200,7 @@ class MangaDexService {
     }
 
     // Manga methods
+    // Get manga list with advanced filtering (like MangaDx)
     async getMangaList(params: {
         limit?: number;
         offset?: number;
@@ -309,17 +222,6 @@ class MangaDexService {
         order?: Record<string, 'asc' | 'desc'>;
         includes?: string[];
     } = {}): Promise<Story[]> {
-        // Nếu API đã bị chặn, trả về mock data ngay
-        if (this.isApiBlocked) {
-            console.log('API is blocked, returning mock data immediately');
-            const mockData = this.getMockStories();
-            console.log('Mock stories count:', mockData.length);
-            console.log('First mock story chapters:', mockData[0]?.chapters);
-            return mockData;
-        }
-
-        console.log('Attempting API call to MangaDx...');
-
         try {
             const queryParams = new URLSearchParams();
 
@@ -340,47 +242,129 @@ class MangaDexService {
             });
 
             const url = `${MANGADEX_API_BASE}${ENDPOINTS.MANGA}?${queryParams.toString()}`;
-            console.log('Fetching manga from URL:', url);
-            console.log('Query params:', queryParams.toString());
+            console.log('🌐 Fetching manga from URL:', url);
+            console.log('📋 Query params:', queryParams.toString());
 
             const response = await fetch(url, {
+                method: 'GET',
                 headers: this.getAuthHeaders(),
             });
 
-            console.log('Response status:', response.status);
-            console.log('Response ok:', response.ok);
+            console.log('📡 Response status:', response.status);
+            console.log('📡 Response headers:', Object.fromEntries(response.headers.entries()));
 
             if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
+                const errorText = await response.text();
+                console.error('❌ Response error text:', errorText);
+                throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
             }
 
-            const data: MangaDexResponse<MangaDexManga> = await response.json();
-            console.log('Response data:', data.result, 'Total:', data.total);
+            const responseText = await response.text();
+            console.log('📄 Raw response (first 500 chars):', responseText.substring(0, 500));
 
-            return data.data.map(manga => this.transformMangaToStory(manga));
+            let data: MangaDexResponse<MangaDexManga>;
+            try {
+                data = JSON.parse(responseText);
+            } catch (parseError) {
+                console.error('❌ JSON parse error:', parseError);
+                console.error('❌ Response text:', responseText);
+                throw new Error('Invalid JSON response from server');
+            }
+
+            console.log('✅ Parsed data result:', data.result);
+            console.log('✅ Data length:', data.data?.length || 0);
+            console.log('✅ Total available:', data.total || 0);
+
+            if (data.result !== 'ok') {
+                throw new Error(`API returned error: ${data.response || 'Unknown error'}`);
+            }
+
+            if (!data.data || !Array.isArray(data.data)) {
+                console.warn('⚠️ No data array in response, using fallback');
+                return this.getFallbackData();
+            }
+
+            const transformedStories = data.data.map(manga => this.transformMangaToStory(manga));
+            console.log('🔄 Transformed stories count:', transformedStories.length);
+            
+            return transformedStories;
         } catch (error) {
-            console.error('Error fetching manga list:', error);
-            console.error('Error type:', typeof error);
-            console.error('Error message:', error instanceof Error ? error.message : 'Unknown error');
+            console.error('❌ Error fetching manga list:', error);
+            console.error('❌ Error type:', typeof error);
+            console.error('❌ Error name:', error instanceof Error ? error.name : 'Unknown');
+            console.error('❌ Error message:', error instanceof Error ? error.message : 'Unknown error');
 
             if (error instanceof Error) {
-                if (['Network request failed', 'NetworkError', 'TypeError'].some(type => error.message.includes(type) || error.name === type)) {
-                    console.warn('MangaDx API blocked for manga list. Using mock data as fallback.');
+                if (['Network request failed', 'NetworkError', 'TypeError', 'fetch'].some(type => 
+                    error.message.includes(type) || error.name === type)) {
+                    console.warn('🚫 MangaDX API blocked or network issue. Using fallback data.');
                     this.isApiBlocked = true;
-                    const mockData = this.getMockStories();
-                    console.log('Fallback mock stories count:', mockData.length);
-                    console.log('First fallback mock story chapters:', mockData[0]?.chapters);
-                    return mockData;
+                    return this.getFallbackData();
                 }
             }
 
-            // Sử dụng dữ liệu mock cho bất kỳ lỗi nào khác
-            console.warn('Manga list API error, falling back to mock data');
-            const mockData = this.getMockStories();
-            console.log('Error fallback mock stories count:', mockData.length);
-            console.log('Error fallback first mock story chapters:', mockData[0]?.chapters);
-            return mockData;
+            // For any other error, still return fallback data
+            console.warn('🔄 API error, falling back to mock data');
+            return this.getFallbackData();
         }
+    }
+
+    // Fallback data when API is not available
+    private getFallbackData(): Story[] {
+        return [
+            {
+                id: 'fallback-1',
+                title: 'One Piece',
+                author: 'Eiichiro Oda',
+                cover: 'https://via.placeholder.com/300x400/FF6B6B/FFFFFF?text=One+Piece',
+                description: 'Follow Monkey D. Luffy, a young pirate with rubber powers, as he explores the Grand Line with his diverse crew of pirates, named the Straw Hat Pirates.',
+                level: 'Intermediate',
+                chapters: 1000,
+                rating: 4.8,
+                readCount: 1500000,
+                tags: ['Adventure', 'Comedy', 'Drama', 'Shounen'],
+                status: 'Ongoing'
+            },
+            {
+                id: 'fallback-2',
+                title: 'Attack on Titan',
+                author: 'Hajime Isayama',
+                cover: 'https://via.placeholder.com/300x400/4ECDC4/FFFFFF?text=Attack+on+Titan',
+                description: 'Humanity fights for survival against giant humanoid Titans behind three massive walls.',
+                level: 'Advanced',
+                chapters: 139,
+                rating: 4.7,
+                readCount: 1200000,
+                tags: ['Action', 'Drama', 'Fantasy', 'Shounen'],
+                status: 'Completed'
+            },
+            {
+                id: 'fallback-3',
+                title: 'My Hero Academia',
+                author: 'Kohei Horikoshi',
+                cover: 'https://via.placeholder.com/300x400/45B7D1/FFFFFF?text=My+Hero+Academia',
+                description: 'In a world where most people have superpowers called "Quirks", Izuku Midoriya dreams of becoming a hero despite being born without powers.',
+                level: 'Beginner',
+                chapters: 400,
+                rating: 4.6,
+                readCount: 800000,
+                tags: ['Action', 'School', 'Shounen', 'Superhero'],
+                status: 'Ongoing'
+            },
+            {
+                id: 'fallback-4',
+                title: 'Demon Slayer',
+                author: 'Koyoharu Gotouge',
+                cover: 'https://via.placeholder.com/300x400/96CEB4/FFFFFF?text=Demon+Slayer',
+                description: 'A young boy becomes a demon slayer to avenge his family and cure his sister.',
+                level: 'Intermediate',
+                chapters: 205,
+                rating: 4.5,
+                readCount: 900000,
+                tags: ['Action', 'Historical', 'Shounen', 'Supernatural'],
+                status: 'Completed'
+            }
+        ];
     }
 
     async getMangaById(id: string): Promise<Story | null> {
@@ -423,7 +407,7 @@ class MangaDexService {
         includeExternalUrl?: boolean;
         order?: Record<string, 'asc' | 'desc'>;
         includes?: string[];
-    } = {}): Promise<Chapter[]> {
+    } = {}): Promise<ChapterDetail[]> {
         try {
             const queryParams = new URLSearchParams();
             queryParams.set('manga', mangaId);
@@ -455,14 +439,28 @@ class MangaDexService {
 
             const data: MangaDexResponse<MangaDexChapter> = await response.json();
 
-            return data.data.map(chapter => this.transformChapterToChapter(chapter));
+            // Map to ChapterDetail
+            return data.data.map(chapter => {
+                const groupRel = chapter.relationships.find(rel => rel.type === 'scanlation_group');
+                const uploaderRel = chapter.relationships.find(rel => rel.type === 'user');
+                return {
+                    id: chapter.id,
+                    title: chapter.attributes.title || `Chapter ${chapter.attributes.chapter || 'Unknown'}`,
+                    volume: chapter.attributes.volume,
+                    chapter: chapter.attributes.chapter || '0',
+                    pages: chapter.attributes.pages,
+                    publishAt: new Date(chapter.attributes.publishAt),
+                    translatedLanguage: chapter.attributes.translatedLanguage,
+                    scanlationGroup: groupRel?.attributes?.name,
+                    uploader: uploaderRel?.attributes?.username,
+                    externalUrl: chapter.attributes.externalUrl,
+                    version: chapter.attributes.version,
+                    mangaId,
+                    mangaTitle: '', // Can be fetched from another API if needed
+                };
+            });
         } catch (error) {
             console.error('Error fetching manga chapters:', error);
-            // Sử dụng dữ liệu mock nếu API bị chặn
-            if (this.isApiBlocked) {
-                console.warn('Using mock data for manga chapters');
-                return this.getMockChapters('mock-1'); // Trả về dữ liệu mock cho manga đầu tiên
-            }
             return [];
         }
     }
@@ -470,84 +468,62 @@ class MangaDexService {
     async getChapterPages(chapterId: string): Promise<string[]> {
         try {
             console.log('Getting chapter pages for ID:', chapterId);
-
-            // Lấy thông tin chapter để lấy hash và data/dataSaver
-            const chapterRes = await fetch(`${MANGADEX_API_BASE}${ENDPOINTS.CHAPTER}/${chapterId}`, {
-                headers: this.getAuthHeaders(),
-            });
-
-            console.log('Chapter response status:', chapterRes.status);
-            if (!chapterRes.ok) throw new Error(`HTTP error! status: ${chapterRes.status}`);
-
-            const chapterData = await chapterRes.json();
-            console.log('Chapter data response:', JSON.stringify(chapterData, null, 2));
-
-            const chapter = chapterData.data;
-            if (!chapter) {
-                console.error('No chapter data found in response');
-                throw new Error('No chapter data found');
-            }
-
-            const hash = chapter.attributes.hash;
-            const data = chapter.attributes.data;
-            const dataSaver = chapter.attributes.dataSaver;
-
-            console.log('Chapter hash:', hash);
-            console.log('Data pages:', data ? data.length : 'null');
-            console.log('DataSaver pages:', dataSaver ? dataSaver.length : 'null');
-
-            // Lấy baseUrl từ at-home server
+    
+            // Bước 1: Gọi at-home server để lấy baseUrl và dữ liệu ảnh
             const atHomeRes = await fetch(`${MANGADEX_API_BASE}/at-home/server/${chapterId}`);
             console.log('At-home response status:', atHomeRes.status);
+    
             if (!atHomeRes.ok) throw new Error(`HTTP error! status: ${atHomeRes.status}`);
-
+    
             const atHomeData = await atHomeRes.json();
-            console.log('At-home data:', JSON.stringify(atHomeData, null, 2));
+            console.log('At-home data (full):', JSON.stringify(atHomeData, null, 2));
+    
             const baseUrl = atHomeData.baseUrl;
-
-            // Ưu tiên dataSaver nếu có, không thì dùng data
-            const pages = (dataSaver && dataSaver.length > 0) ? dataSaver : data;
-            console.log('Selected pages array:', pages);
-
-            if (!Array.isArray(pages) || pages.length === 0) {
-                console.error('No valid pages array found:', {
-                    pages,
-                    data: chapter.attributes.data,
-                    dataSaver: chapter.attributes.dataSaver
-                });
-                throw new Error('No pages found for this chapter');
+            const chapter = atHomeData.chapter;
+    
+            if (!chapter) {
+                throw new Error('Chapter data missing in at-home response');
             }
-
-            // Tạo URL ảnh
-            const pageUrls = pages.map((page: string) =>
-                `${baseUrl}/${(dataSaver && dataSaver.length > 0) ? 'data-saver' : 'data'}/${hash}/${page}`
+    
+            const hash = chapter.hash;
+            const data = chapter.data;
+            const dataSaver = chapter.dataSaver;
+    
+            console.log('Chapter hash:', hash);
+            console.log('Data pages:', data?.length ?? 'null');
+            console.log('DataSaver pages:', dataSaver?.length ?? 'null');
+    
+            // Ưu tiên dataSaver nếu có, fallback sang data
+            const pages = (dataSaver && dataSaver.length > 0) ? dataSaver : data;
+    
+            if (!Array.isArray(pages) || pages.length === 0) {
+                console.warn('No pages found for this chapter. Falling back to mock.');
+                return [];
+            }
+    
+            const pageUrls = pages.map((filename: string) => 
+                `${baseUrl}/${dataSaver && dataSaver.length > 0 ? 'data-saver' : 'data'}/${hash}/${filename}`
             );
-
+    
             console.log('Generated page URLs:', pageUrls);
             return pageUrls;
         } catch (error) {
             console.error('Error fetching chapter pages:', error);
-
-            // Nếu API bị chặn hoặc lỗi network, trả về mock pages
+    
+            // Nếu API bị chặn hoặc lỗi, trả về mock
             if (error instanceof Error) {
                 if (['Network request failed', 'NetworkError', 'TypeError'].some(type => error.message.includes(type) || error.name === type)) {
-                    console.warn('MangaDx API blocked for chapter pages. Using mock data as fallback.');
+                    console.warn('MangaDex API blocked for chapter pages. Using mock fallback.');
                     this.isApiBlocked = true;
-                    return this.getMockPages();
-                }
-                if (error.message.includes('No pages found')) {
-                    console.warn('No pages found for chapter, using mock pages');
-                    return this.getMockPages();
                 }
             }
-
-            console.warn('Chapter pages API error, falling back to mock data');
-            return this.getMockPages();
+    
+            return [];
         }
-    }
+    }    
 
     // Transform MangaDex manga to our Story type
-    private transformMangaToStory(manga: MangaDexManga): Story {
+    private transformMangaToStory(manga: MangaDexManga, chapterCount: number = 0): Story {
         const title = manga.attributes.title.en ||
             manga.attributes.title.ja ||
             manga.attributes.altTitles?.[0]?.en ||
@@ -585,9 +561,9 @@ class MangaDexService {
             cover,
             description,
             level,
-            chapters: parseInt(manga.attributes.lastChapter || '0') || Math.floor(Math.random() * 200) + 50, // Use lastChapter or random for demo
-            rating: 4.0 + Math.random(), // Random rating between 4.0-5.0
-            readCount: Math.floor(Math.random() * 500000) + 10000, // Random read count
+            chapters: chapterCount, // Số chapter thực tế
+            rating: 4.5, // TODO: fetch actual rating if available
+            readCount: 0,
             tags,
             status: manga.attributes.status === 'completed' ? 'Completed' : 'Ongoing'
         };
@@ -611,13 +587,25 @@ class MangaDexService {
     }
 
     // Search manga by title
-    async searchManga(query: string, limit: number = 20): Promise<Story[]> {
+    async searchManga(params: {
+        title?: string;
+        author?: string;
+        artist?: string;
+        year?: number;
+        includedTags?: string[];
+        excludedTags?: string[];
+        status?: string[];
+        originalLanguage?: string[];
+        publicationDemographic?: string[];
+        contentRating?: string[];
+        limit?: number;
+        offset?: number;
+        order?: Record<string, 'asc' | 'desc'>;
+    } = {}): Promise<Story[]> {
         return this.getMangaList({
-            title: query,
-            limit,
-            order: { relevance: 'desc' },
+            ...params,
+            includes: ['cover_art', 'author', 'artist'],
             availableTranslatedLanguage: ['en'],
-            includes: ['cover_art', 'author']
         });
     }
 
@@ -643,10 +631,65 @@ class MangaDexService {
         });
     }
 
-    // Test connectivity to MangaDx API
+    // Get recently updated manga
+    async getRecentlyUpdatedManga(limit: number = 20): Promise<Story[]> {
+        return this.getMangaList({
+            limit,
+            order: { updatedAt: 'desc' },
+            contentRating: ['safe', 'suggestive'],
+            availableTranslatedLanguage: ['en'],
+            includes: ['cover_art', 'author']
+        });
+    }
+
+    // Get manga by demographic (like MangaDex categories)
+    async getMangaByDemographic(demographic: string, limit: number = 20): Promise<Story[]> {
+        return this.getMangaList({
+            limit,
+            publicationDemographic: [demographic],
+            order: { followedCount: 'desc' },
+            contentRating: ['safe', 'suggestive'],
+            availableTranslatedLanguage: ['en'],
+            includes: ['cover_art', 'author']
+        });
+    }
+
+    // Get all available tags (for filtering)
+    async getTags(): Promise<{ id: string; name: string; group: string }[]> {
+        try {
+            const response = await fetch(`${MANGADEX_API_BASE}${ENDPOINTS.TAG}`, {
+                headers: this.getAuthHeaders(),
+            });
+
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            const data = await response.json();
+            return data.data.map((tag: any) => ({
+                id: tag.id,
+                name: tag.attributes.name.en,
+                group: tag.attributes.group
+            }));
+        } catch (error) {
+            console.error('Error fetching tags:', error);
+            // Return some default tags if API fails
+            return [
+                { id: '1', name: 'Action', group: 'genre' },
+                { id: '2', name: 'Romance', group: 'genre' },
+                { id: '3', name: 'Comedy', group: 'genre' },
+                { id: '4', name: 'Drama', group: 'genre' },
+                { id: '5', name: 'Fantasy', group: 'genre' },
+                { id: '6', name: 'School Life', group: 'theme' },
+                { id: '7', name: 'Slice of Life', group: 'theme' },
+            ];
+        }
+    }
+
+    // Test connectivity to MangaDex API
     async testConnection(): Promise<{ success: boolean; message: string }> {
         try {
-            console.log('Testing connection to MangaDx API...');
+            console.log('Testing connection to MangaDex API...');
 
             // Test 1: Simple API call
             console.log('Test 1: Basic API call');
@@ -671,10 +714,10 @@ class MangaDexService {
                 console.log('Test 2: Testing external API');
                 const testResponse = await fetch('https://httpbin.org/get');
                 if (testResponse.ok) {
-                    console.log('External API works, MangaDx specific issue');
-                    return { success: false, message: 'Network works but MangaDx blocked: ' + (error instanceof Error ? error.message : 'Unknown error') };
+                    console.log('External API works, MangaDex specific issue');
+                    return { success: false, message: 'Network works but MangaDex blocked: ' + (error instanceof Error ? error.message : 'Unknown error') };
                 }
-            } catch (externalError) {
+            } catch {
                 console.log('External API also fails, general network issue');
                 return { success: false, message: 'General network issue: ' + (error instanceof Error ? error.message : 'Unknown error') };
             }
@@ -684,6 +727,18 @@ class MangaDexService {
             }
             return { success: false, message: 'Unknown connection error' };
         }
+    }
+
+    async getChapterInfo(chapterId: string) {
+        const res = await fetch(`${MANGADEX_API_BASE}/chapter/${chapterId}`);
+        if (!res.ok) throw new Error('Failed to fetch chapter info');
+        const data = await res.json();
+        return {
+            title: data.data?.attributes?.title || '',
+            chapter: data.data?.attributes?.chapter || '',
+            volume: data.data?.attributes?.volume || '',
+            scanlationGroup: data.data?.relationships?.find((r: any) => r.type === 'scanlation_group')?.attributes?.name || '',
+        };
     }
 }
 

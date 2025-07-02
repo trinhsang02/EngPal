@@ -12,7 +12,8 @@
       "assets/**/*"
     ],
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.anonymous.learingEnglish"
     },
     "android": {
       "adaptiveIcon": {
@@ -20,7 +21,10 @@
         "backgroundColor": "#ffffff"
       },
       "edgeToEdgeEnabled": true,
-      "package": "com.anonymous.learingEnglish"
+      "package": "com.anonymous.learingEnglish",
+      "permissions": [
+        "NOTIFICATIONS"
+      ]
     },
     "web": {
       "bundler": "metro",
@@ -37,10 +41,33 @@
           "resizeMode": "contain",
           "backgroundColor": "#ffffff"
         }
+      ],
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/images/icon.jpg",
+          "color": "#ffffff",
+          "sounds": [
+            "./assets/sounds/notification.wav"
+          ]
+        }
       ]
     ],
     "experiments": {
       "typedRoutes": true
+    },
+    "notification": {
+      "icon": "./assets/images/icon.jpg",
+      "color": "#ffffff",
+      "iosDisplayInForeground": true,
+      "androidMode": "default",
+      "androidCollapsedTitle": "New Notification"
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "ce018b89-21aa-41b0-a384-3a06c9b242cd"
+      }
     }
   }
 }
