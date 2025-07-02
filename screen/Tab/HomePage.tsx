@@ -21,7 +21,7 @@ const resources = [
   { label: 'Ngữ pháp', icon: <FontAwesome5 name="graduation-cap" size={34} color="#fff" />, color: '#AB47BC', destination: 'Grammar' },
   { label: 'Review', icon: <Ionicons name="checkmark-circle" size={34} color="#fff" />, color: '#00C853', destination: 'Review' },
   { label: 'Chat', icon: <Ionicons name="chatbubble-ellipses" size={34} color="#fff" />, color: '#990000', destination: 'Chat' },
-  { label: 'Story', icon: <Ionicons name="newspaper-outline" size={34} color="#fff" />, color: '#00C', destination: 'Story' },
+  { label: 'Story', icon: <Ionicons name="book-outline" size={34} color="#fff" />, color: '#00C', destination: 'Story' },
   { label: 'Listening', icon: <Ionicons name="headset-outline" size={34} color="#fff" />, color: '#888888', destination: 'Chat' },
   { label: 'Game', icon: <FontAwesome5 name="gamepad" size={34} color="#fff" />, color: '#FFCC00', destination: 'Game' },
   // Add more as needed

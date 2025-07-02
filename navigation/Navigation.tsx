@@ -33,5 +33,6 @@ export type RootStackParamList = {
     'GrammarDetail': { subtitle: any };
     'Story': undefined;
     'NativeLang': undefined;
+    'Translate': undefined;
 };
 

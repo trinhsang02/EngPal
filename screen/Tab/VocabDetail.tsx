@@ -5,6 +5,7 @@ import { Ionicons, MaterialIcons } from '@expo/vector-icons';
 import { Audio } from 'expo-av';
 import { useOxfordDatabase } from '@/hooks/useOxfordDatabase';
 import { WordDetail } from '@/services/oxfordDatabase';
+import { translateText } from '@/services/translateService';
 
 export const VocabDetail = ({ route }: any) => {
   const navigation = useNavigation();
@@ -21,6 +22,10 @@ export const VocabDetail = ({ route }: any) => {
   const [wordDetails, setWordDetails] = useState<WordDetail | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [sound, setSound] = useState<Audio.Sound | null>(null);
+
+  // State lưu kết quả dịch cho từng example
+  const [exampleTranslations, setExampleTranslations] = useState<{ [id: number]: string }>({});
+  const [translatingIds, setTranslatingIds] = useState<number[]>([]);
 
   // Fetch word details from database
   useEffect(() => {
@@ -92,6 +97,39 @@ export const VocabDetail = ({ route }: any) => {
     }
   };
 
+  // Hàm dịch một câu ví dụ
+  const translateExample = async (exampleId: number, text: string) => {
+    if (exampleTranslations[exampleId] || translatingIds.includes(exampleId)) return;
+    setTranslatingIds(ids => [...ids, exampleId]);
+    try {
+      const translated = await translateText(text, 'vi');
+      setExampleTranslations(prev => ({ ...prev, [exampleId]: translated }));
+    } catch (e) {
+      setExampleTranslations(prev => ({ ...prev, [exampleId]: 'Lỗi dịch' }));
+    } finally {
+      setTranslatingIds(ids => ids.filter(id => id !== exampleId));
+    }
+  };
+
+  // Dịch tất cả các example khi wordDetails thay đổi
+  useEffect(() => {
+    if (!wordDetails) return;
+    wordDetails.senses.forEach((sense: any) => {
+      sense.examples?.forEach((example: any) => {
+        if (
+          example &&
+          example.id &&
+          example.example &&
+          !exampleTranslations[example.id] &&
+          !translatingIds.includes(example.id)
+        ) {
+          translateExample(example.id, example.example);
+        }
+      });
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [wordDetails]);
+
   useEffect(() => {
     navigation.setOptions({
       title: '',
@@ -159,6 +197,13 @@ export const VocabDetail = ({ route }: any) => {
           {sense.examples?.map((example: any) => (
             <View key={example.id} style={styles.exampleContainer}>
               <Text style={styles.exampleText}>• {example.example}</Text>
+              {translatingIds.includes(example.id) ? (
+                <Text style={{ color: '#3B82F6', fontSize: 14 }}>Đang dịch...</Text>
+              ) : exampleTranslations[example.id] ? (
+                <Text style={{ color: '#388e3c', fontSize: 15, marginTop: 2 }}>
+                  {exampleTranslations[example.id]}
+                </Text>
+              ) : null}
             </View>
           ))}
         </View>
