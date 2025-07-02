@@ -14,11 +14,15 @@ import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { useOxfordDatabase } from '../../hooks/useOxfordDatabase';
 import { Word } from '../../services/oxfordDatabase';
+import { translateText } from '../../services/translateService';
 
 const Vocab: React.FC = () => {
   const navigation = useNavigation();
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [refreshing, setRefreshing] = useState<boolean>(false);
+  const [translateResult, setTranslateResult] = useState<string>('');
+  const [translating, setTranslating] = useState(false);
+  const [translateError, setTranslateError] = useState('');
 
   const {
     isLoading,
@@ -50,12 +54,28 @@ const Vocab: React.FC = () => {
 
   const handleSearch = useCallback(async (query: string) => {
     setSearchQuery(query);
+    setTranslateResult('');
+    setTranslateError('');
     if (query.trim()) {
-      await searchWords(query.trim());
+      // Nếu là câu (có dấu cách), gọi Gemini dịch
+      if (query.trim().includes(' ')) {
+        setTranslating(true);
+        try {
+          const targetLang = /[a-zA-Z]/.test(query) ? 'vi' : 'en';
+          const translated = await translateText(query.trim(), targetLang);
+          setTranslateResult(translated);
+        } catch (e: any) {
+          setTranslateError(e.message || 'Lỗi dịch, thử lại!');
+        } finally {
+          setTranslating(false);
+        }
+      } else {
+        await searchWords(query.trim());
+      }
     } else {
       await getAllWords();
     }
-  }, [searchWords, getAllWords]);
+  }, [searchWords, getAllWords, translateText]);
 
   // Load all words on first render after database is ready
   useEffect(() => {
@@ -192,7 +212,7 @@ const Vocab: React.FC = () => {
           <Ionicons name="search" size={20} color="#9CA3AF" style={styles.searchIcon} />
           <TextInput
             style={styles.searchInput}
-            placeholder="Search vocabulary..."
+            placeholder="Search vocabulary or enter a sentence..."
             placeholderTextColor="#9CA3AF"
             value={searchQuery}
             onChangeText={handleSearch}
@@ -209,6 +229,21 @@ const Vocab: React.FC = () => {
             </TouchableOpacity>
           )}
         </View>
+        {/* Kết quả dịch câu nếu có */}
+        {translating && (
+          <View style={{ marginTop: 8 }}>
+            <ActivityIndicator size="small" color="#3B82F6" />
+          </View>
+        )}
+        {translateResult ? (
+          <View style={{ marginTop: 8, backgroundColor: '#e8f5e9', borderRadius: 8, padding: 10 }}>
+            <Text style={{ color: '#388e3c', fontWeight: 'bold' }}>Kết quả dịch:</Text>
+            <Text style={{ fontSize: 16, color: '#222', marginTop: 4 }}>{translateResult}</Text>
+          </View>
+        ) : null}
+        {translateError ? (
+          <Text style={{ color: 'red', marginTop: 8 }}>{translateError}</Text>
+        ) : null}
       </View>
 
       {/* Word Count */}
