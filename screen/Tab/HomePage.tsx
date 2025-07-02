@@ -14,6 +14,7 @@ import LearningGoalModal from '../../components/ui/LearningGoalModal';
 import { setGoal, setTodayProgress, loadLearningGoal, checkAndUpdateStreak } from '../../store/userSlice';
 import { Word } from '../../services/oxfordDatabase';
 import { suggestWords } from '@/services/suggestWord';
+import { translateText } from '@/services/translateService';
 
 const resources = [
   { label: 'Vocabulary', icon: <MaterialIcons name="menu-book" size={34} color="#fff" />, color: '#FFB300', destination: 'Vocabulary' },
@@ -49,6 +50,7 @@ export default function HomePage({ navigation }: { navigation: any }) {
   const [randomWords, setRandomWords] = useState<Word[]>([]);
   const { getStudyStatistics, getRandomWords } = useOxfordDatabase();
   const [suggestedWords, setSuggestedWords] = useState<SuggestedWord[]>([]);
+  const [translation, setTranslation] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchSuggestedWords = async () => {
@@ -90,20 +92,38 @@ export default function HomePage({ navigation }: { navigation: any }) {
     fetchRandom();
   }, [getRandomWords]);
 
-  const handleSearch = () => {
+  const handleSearch = async () => {
     if (search.length > 0) {
-      const vocab = loadVocabByLetter(search[0]).find(
-        (v: Vocab) => v.word.toLowerCase() === search.toLowerCase()
-      );
-      if (vocab) {
-        setResult(vocab);
-        setModalVisible(true);
+      // Nếu là câu (có dấu cách), thì dịch
+      if (search.trim().includes(' ')) {
+        try {
+          const translated = await translateText(search, 'vi');
+          setTranslation(translated);
+          setResult(null);
+          setModalVisible(true);
+        } catch (e) {
+          setTranslation('Lỗi dịch, thử lại!');
+          setResult(null);
+          setModalVisible(true);
+        }
       } else {
-        setResult(null);
-        setModalVisible(false);
+        // Tra từ điển như cũ
+        const vocab = loadVocabByLetter(search[0]).find(
+          (v: Vocab) => v.word.toLowerCase() === search.toLowerCase()
+        );
+        if (vocab) {
+          setResult(vocab);
+          setTranslation(null);
+          setModalVisible(true);
+        } else {
+          setResult(null);
+          setTranslation(null);
+          setModalVisible(false);
+        }
       }
     } else {
       setResult(null);
+      setTranslation(null);
       setModalVisible(false);
     }
   };
@@ -175,22 +195,31 @@ export default function HomePage({ navigation }: { navigation: any }) {
         >
           <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.3)', justifyContent: 'flex-end', alignItems: 'center' }}>
             <View style={{ backgroundColor: '#fff', borderRadius: 12, padding: 24, width: '85%', alignItems: 'center' }}>
-              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                <Text style={{ fontWeight: 'bold', fontSize: 22 }}>{result?.word}</Text>
-                <TouchableOpacity onPress={() => Speech.speak(result?.word || '')} style={{ marginLeft: 8 }}>
-                  <Ionicons name="volume-high" size={24} color="#2196f3" />
-                </TouchableOpacity>
-              </View>
-              <Text style={{ color: '#2196f3', fontWeight: 'bold', marginBottom: 4 }}>
-                {result?.pos?.toUpperCase()}
-              </Text>
-              <Text style={{ fontStyle: 'italic', color: '#888', marginBottom: 8 }}>{result?.phonetic_text}</Text>
-              <View>
-                {result?.senses?.map((sense, idx) => (
-                  <Text key={idx} style={{ marginTop: 4, fontSize: 16 }}>- {sense.definition}</Text>
-                ))}
-              </View>
-
+              {translation ? (
+                <>
+                  <Text style={{ fontWeight: 'bold', fontSize: 18, marginBottom: 8 }}>Dịch câu</Text>
+                  <Text style={{ fontSize: 16, marginBottom: 8 }}>{search}</Text>
+                  <Text style={{ color: '#2196f3', fontWeight: 'bold', fontSize: 18 }}>{translation}</Text>
+                </>
+              ) : result ? (
+                <>
+                  <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                    <Text style={{ fontWeight: 'bold', fontSize: 22 }}>{result?.word}</Text>
+                    <TouchableOpacity onPress={() => Speech.speak(result?.word || '')} style={{ marginLeft: 8 }}>
+                      <Ionicons name="volume-high" size={24} color="#2196f3" />
+                    </TouchableOpacity>
+                  </View>
+                  <Text style={{ color: '#2196f3', fontWeight: 'bold', marginBottom: 4 }}>
+                    {result?.pos?.toUpperCase()}
+                  </Text>
+                  <Text style={{ fontStyle: 'italic', color: '#888', marginBottom: 8 }}>{result?.phonetic_text}</Text>
+                  <View>
+                    {result?.senses?.map((sense, idx) => (
+                      <Text key={idx} style={{ marginTop: 4, fontSize: 16 }}>- {sense.definition}</Text>
+                    ))}
+                  </View>
+                </>
+              ) : null}
               <TouchableOpacity onPress={() => setModalVisible(false)}>
                 <Text style={{ color: '#2196f3', marginTop: 16, fontWeight: 'bold' }}>Đóng</Text>
               </TouchableOpacity>
