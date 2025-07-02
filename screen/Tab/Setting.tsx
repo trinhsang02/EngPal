@@ -52,7 +52,7 @@ const SETTINGS = [
   {
     icon: <MaterialIcons name="language" size={22} color="#1ABC9C" style={styles.settingIcon} />,
     text: 'Ngôn ngữ mẹ đẻ',
-    screen: 'Language' as const,
+    screen: 'NativeLang' as const,
   },
   {
     icon: <FontAwesome5 name="graduation-cap" size={20} color="#FF914D" style={styles.settingIcon} />,

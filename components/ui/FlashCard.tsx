@@ -56,13 +56,15 @@ export default function FlashCard({
     };
 
     const handlePronunciation = () => {
-        if (word.phonetic) {
-            // Try to speak the word using TTS as fallback
+        // Always try to speak the word using TTS
+        try {
             Speech.speak(word.word, {
                 language: 'en-US',
                 pitch: 1,
                 rate: 0.8,
             });
+        } catch (error) {
+            console.error('Speech error:', error);
         }
     };
 
@@ -128,9 +130,6 @@ export default function FlashCard({
                     <View style={styles.cardContent}>
                         <View style={styles.wordHeader}>
                             <Text style={styles.wordText}>{word.word}</Text>
-                            <TouchableOpacity onPress={handlePronunciation} style={styles.soundButton}>
-                                <Ionicons name="volume-high" size={24} color="#4A90E2" />
-                            </TouchableOpacity>
                         </View>
 
                         <Text style={styles.posText}>{word.pos}</Text>
@@ -184,6 +183,14 @@ export default function FlashCard({
                         </View>
                     </View>
                 </Animated.View>
+            </TouchableOpacity>
+
+            {/* Sound Button - Outside card to prevent flip */}
+            <TouchableOpacity
+                onPress={handlePronunciation}
+                style={styles.soundButtonExternal}
+            >
+                <Ionicons name="volume-high" size={28} color="#4A90E2" />
             </TouchableOpacity>
 
             {/* Action Buttons */}
@@ -305,6 +312,18 @@ const styles = StyleSheet.create({
         padding: 8,
         borderRadius: 20,
         backgroundColor: '#EBF4FF',
+    },
+    soundButtonExternal: {
+        padding: 12,
+        borderRadius: 25,
+        backgroundColor: '#EBF4FF',
+        marginBottom: 20,
+        alignSelf: 'center',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+        elevation: 3,
     },
     posText: {
         fontSize: 18,

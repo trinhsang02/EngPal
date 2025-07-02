@@ -311,9 +311,14 @@ class MangaDexService {
     } = {}): Promise<Story[]> {
         // Nếu API đã bị chặn, trả về mock data ngay
         if (this.isApiBlocked) {
-            console.log('API is blocked, returning mock data');
-            return this.getMockStories();
+            console.log('API is blocked, returning mock data immediately');
+            const mockData = this.getMockStories();
+            console.log('Mock stories count:', mockData.length);
+            console.log('First mock story chapters:', mockData[0]?.chapters);
+            return mockData;
         }
+
+        console.log('Attempting API call to MangaDx...');
 
         try {
             const queryParams = new URLSearchParams();
@@ -362,13 +367,19 @@ class MangaDexService {
                 if (['Network request failed', 'NetworkError', 'TypeError'].some(type => error.message.includes(type) || error.name === type)) {
                     console.warn('MangaDx API blocked for manga list. Using mock data as fallback.');
                     this.isApiBlocked = true;
-                    return this.getMockStories();
+                    const mockData = this.getMockStories();
+                    console.log('Fallback mock stories count:', mockData.length);
+                    console.log('First fallback mock story chapters:', mockData[0]?.chapters);
+                    return mockData;
                 }
             }
 
             // Sử dụng dữ liệu mock cho bất kỳ lỗi nào khác
             console.warn('Manga list API error, falling back to mock data');
-            return this.getMockStories();
+            const mockData = this.getMockStories();
+            console.log('Error fallback mock stories count:', mockData.length);
+            console.log('Error fallback first mock story chapters:', mockData[0]?.chapters);
+            return mockData;
         }
     }
 
@@ -574,9 +585,9 @@ class MangaDexService {
             cover,
             description,
             level,
-            chapters: 0, // TODO: fetch actual chapter count if needed
-            rating: 4.5, // TODO: fetch actual rating if available
-            readCount: 0,
+            chapters: parseInt(manga.attributes.lastChapter || '0') || Math.floor(Math.random() * 200) + 50, // Use lastChapter or random for demo
+            rating: 4.0 + Math.random(), // Random rating between 4.0-5.0
+            readCount: Math.floor(Math.random() * 500000) + 10000, // Random read count
             tags,
             status: manga.attributes.status === 'completed' ? 'Completed' : 'Ongoing'
         };
