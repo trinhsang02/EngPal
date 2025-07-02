@@ -64,10 +64,7 @@
       "androidCollapsedTitle": "New Notification"
     },
     "extra": {
-      "router": {},
-      "eas": {
-        "projectId": "ce018b89-21aa-41b0-a384-3a06c9b242cd"
-      }
+      "router": {}
     }
   }
 }
