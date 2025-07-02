@@ -15,7 +15,7 @@ import Chat from "@/screen/Resources/Chat";
 import QuizScreen from "@/screen/Resources/QuizScreen";
 import Grammar from "@/screen/Resources/Grammar";
 import GrammarDetail from "@/screen/Resources/GrammarDetail";
-import StoryScreen from "@/screen/Resources/Story";
+import StoryScreen from "@/screen/Resources/StoryClean";
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
