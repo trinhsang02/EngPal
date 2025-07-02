@@ -90,9 +90,9 @@ const Review = () => {
                         style={styles.picker}
                     >
                         <Picker.Item label="Writing" value="writing" />
-                        <Picker.Item label="Speaking" value="speaking" />
+                        {/* <Picker.Item label="Speaking" value="speaking" />
                         <Picker.Item label="Reading" value="reading" />
-                        <Picker.Item label="Listening" value="listening" />
+                        <Picker.Item label="Listening" value="listening" /> */}
                         <Picker.Item label="Essays" value="essays" />
                     </Picker>
                 </View>

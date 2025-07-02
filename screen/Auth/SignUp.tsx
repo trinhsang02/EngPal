@@ -13,6 +13,7 @@ import { Header } from '@/components/ui/Header';
 import { useNavigation } from '@react-navigation/native';
 import { RootStackParamList } from '@/navigation/Navigation';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { registerApi } from '@/services/authentication';
 
 // Placeholder for icons
 const CalendarIcon = () => <Text style={{ fontSize: 18 }}>📅</Text>;
@@ -33,9 +34,13 @@ export default function SignUpScreen() {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
 
-  const handleSignUp = () => {
-    // TODO: Implement sign up logic
-    console.log({ firstName, lastName, email, dob, countryCode, phone, password });
+  const handleSignUp = async () => {
+    try {
+      const response = await registerApi(email, password);
+      console.log('Sign up successful:', response);
+    } catch (error) {
+      console.error('Sign up failed:', error);
+    }
   };
 
   return (
@@ -60,20 +65,20 @@ export default function SignUpScreen() {
           <View style={styles.rowInputs}>
             <TextInput
               style={[styles.input, { flex: 1, marginRight: 8 }]}
-              placeholder="Lois"
+              placeholder="First Name"
               value={firstName}
               onChangeText={setFirstName}
             />
             <TextInput
               style={[styles.input, { flex: 1, marginLeft: 8 }]}
-              placeholder="Becket"
+              placeholder="Last Name"
               value={lastName}
               onChangeText={setLastName}
             />
           </View>
           <TextInput
             style={styles.input}
-            placeholder="Loisbecket@gmail.com"
+            placeholder="Email"
             value={email}
             onChangeText={setEmail}
             keyboardType="email-address"
