@@ -3,13 +3,22 @@ import { View, Text, StyleSheet, Image, TouchableOpacity } from 'react-native';
 import { useRoute } from '@react-navigation/native';
 import { Header } from '@/components/ui/Header';
 import { MaterialIcons } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useNavigation } from '@react-navigation/native';
 
 export default function UserDetailScreen() {
+    const navigation = useNavigation();
     const route = useRoute();
     const { name, email, id } = route.params as { name: string; email: string; id: string };
 
+    const handleLogout = async () => {
+        console.log('Logout');
+        await AsyncStorage.removeItem('token');
+        navigation.navigate('SignIn' as never);
+    }
+
     return (
-        <View style={{ flex: 1, backgroundColor: '#fafbfc' }}>
+        <View style={{ flex: 1, backgroundColor: '#fff' }}>
             <View style={styles.avatarSection}>
                 <View style={styles.avatarWrap}>
                     <Image
@@ -34,7 +43,7 @@ export default function UserDetailScreen() {
                     <Text style={styles.value}>{email}</Text>
                 </View>
             </View>
-            <TouchableOpacity style={styles.logoutBtn}>
+            <TouchableOpacity style={styles.logoutBtn} onPress={handleLogout}>
                 <Text style={styles.logoutText}>ĐĂNG XUẤT</Text>
             </TouchableOpacity>
             <TouchableOpacity style={styles.deleteBtn}>

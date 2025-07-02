@@ -13,6 +13,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import LearningGoalModal from '../../components/ui/LearningGoalModal';
 import { setGoal, setTodayProgress, loadLearningGoal, checkAndUpdateStreak } from '../../store/userSlice';
 import { Word } from '../../services/oxfordDatabase';
+import { suggestWords } from '@/services/suggestWord';
 
 const resources = [
   { label: 'Vocabulary', icon: <MaterialIcons name="menu-book" size={34} color="#fff" />, color: '#FFB300', destination: 'Vocabulary' },
@@ -21,10 +22,20 @@ const resources = [
   { label: 'Review', icon: <Ionicons name="checkmark-circle" size={34} color="#fff" />, color: '#00C853', destination: 'Review' },
   { label: 'Tư vấn', icon: <Ionicons name="chatbubble-ellipses" size={34} color="#fff" />, color: '#00C853', destination: 'Chat' },
   { label: 'Game', icon: <FontAwesome5 name="gamepad" size={34} color="#fff" />, color: '#7E57C2', destination: 'Game' },
-  { label: 'News', icon: <Ionicons name="chatbubble-ellipses" size={34} color="#fff" />, color: '#00C853', destination: 'Chat' },
-  { label: 'Listening', icon: <Ionicons name="chatbubble-ellipses" size={34} color="#fff" />, color: '#00C853', destination: 'Chat' },
+  { label: 'News', icon: <Ionicons name="newspaper-outline" size={34} color="#fff" />, color: '#00C853', destination: 'Story' },
+  { label: 'Listening', icon: <Ionicons name="headset-outline" size={34} color="#fff" />, color: '#00C853', destination: 'Chat' },
   // Add more as needed
 ];
+
+interface SuggestedWord {
+  word: string;
+  pos: string;
+  phonetic?: string;
+  phonetic_text?: string;
+  phonetic_am?: string;
+  phonetic_am_text?: string;
+  senses?: any[];
+}
 
 export default function HomePage({ navigation }: { navigation: any }) {
   const user = useSelector((state: RootState) => state.user.user);
@@ -37,6 +48,15 @@ export default function HomePage({ navigation }: { navigation: any }) {
   const [learnedToday, setLearnedToday] = useState<number>(0);
   const [randomWords, setRandomWords] = useState<Word[]>([]);
   const { getStudyStatistics, getRandomWords } = useOxfordDatabase();
+  const [suggestedWords, setSuggestedWords] = useState<SuggestedWord[]>([]);
+
+  useEffect(() => {
+    const fetchSuggestedWords = async () => {
+      const words = await suggestWords(search);
+      setSuggestedWords(words);
+    };
+    fetchSuggestedWords();
+  }, [search]);
 
   useFocusEffect(
     React.useCallback(() => {
@@ -111,7 +131,7 @@ export default function HomePage({ navigation }: { navigation: any }) {
   };
 
   return (
-    <ScrollView style={styles.container}>
+    <ScrollView style={styles.container} contentContainerStyle={{ paddingBottom: 100 }}>
       {/* Header */}
       <Header />
 
@@ -239,6 +259,98 @@ export default function HomePage({ navigation }: { navigation: any }) {
         onClose={() => setGoalModalVisible(false)}
         learnedToday={learnedToday}
       />
+
+      {/* Suggested Words */}
+      {/* <View style={styles.section}>
+        <View style={styles.sectionHeader}>
+          <View
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              alignSelf: 'flex-start',
+              backgroundColor: '#f3f4f6',
+              borderRadius: 16,
+              paddingHorizontal: 12,
+              paddingVertical: 4,
+              marginBottom: 10,
+              marginTop: 8,
+            }}
+          >
+            <Ionicons name="star-outline" size={16} color="#666" style={{ marginRight: 6 }} />
+            <Text style={{ color: '#444', fontWeight: '600', fontSize: 14 }}>Recommended for you</Text>
+          </View>
+        </View>
+        <View style={styles.tagsRow}>
+          {suggestedWords.map((wordObj, idx) => (
+            <TouchableOpacity
+              key={idx}
+              style={[
+                styles.tag,
+                {
+                  alignItems: 'flex-start',
+                  justifyContent: 'center',
+                  padding: 16,
+                  width: 400,
+                  height: 110,
+                  margin: 8,
+                  backgroundColor: '#fff',
+                  borderRadius: 18,
+                  borderWidth: 1,
+                  borderColor: '#e3e6ed',
+                  shadowColor: '#000',
+                  shadowOpacity: 0.06,
+                  shadowRadius: 8,
+                  elevation: 2,
+                },
+              ]}
+              activeOpacity={0.85}
+              onPress={() => {
+                Speech.speak(wordObj.word, { language: wordObj.phonetic_am ? 'en-US' : 'en-GB' });
+              }}
+            >
+              <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 4 }}>
+                <Text style={{ fontWeight: 'bold', fontSize: 20, color: '#222', marginRight: 6 }}>
+                  {wordObj.word}
+                </Text>
+                <View style={{
+                  backgroundColor: wordObj.pos === 'verb' ? '#e3f0ff' : '#ffe3e3',
+                  borderRadius: 8,
+                  paddingHorizontal: 8,
+                  paddingVertical: 2,
+                  marginRight: 6,
+                }}>
+                  <Text style={{ color: '#4285F4', fontSize: 13 }}>{wordObj.pos}</Text>
+                </View>
+                {wordObj.phonetic_text && (
+                  <Text style={{ color: '#888', fontSize: 14, fontFamily: 'monospace', marginRight: 4 }}>
+                    {wordObj.phonetic_text}
+                  </Text>
+                )}
+                <TouchableOpacity
+                  onPress={() => Speech.speak(wordObj.word, { language: wordObj.phonetic_am ? 'en-US' : 'en-GB' })}
+                  style={{ marginLeft: 2, padding: 2, borderRadius: 12 }}
+                >
+                  <Ionicons name="volume-high-outline" size={18} color="#4285F4" />
+                </TouchableOpacity>
+              </View>
+              {wordObj.senses && wordObj.senses.length > 0 && (
+                <View>
+                  <Text style={{ color: '#444', fontSize: 15, fontStyle: 'italic' }} numberOfLines={2}>
+                    {wordObj.senses[0].definition}
+                  </Text>
+                  {wordObj.senses[0].examples && wordObj.senses[0].examples.length > 0 && (
+                    <Text style={{ color: '#888', fontSize: 13, marginTop: 2 }} numberOfLines={1}>
+                      ❝{wordObj.senses[0].examples[0].x}❞
+                    </Text>
+                  )}
+                </View>
+              )}
+            </TouchableOpacity>
+          ))}
+        </View>
+      </View> */}
+
+
     </ScrollView>
   );
 }

@@ -71,7 +71,7 @@ function Chat() {
     );
 
     return (
-        <KeyboardAvoidingView style={{ flex: 1, backgroundColor: '#f8f9fa' }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+        <KeyboardAvoidingView style={{ flex: 1, backgroundColor: '#fff' }} behavior="padding" keyboardVerticalOffset={150}>
             <FlatList
                 ref={flatListRef}
                 data={messages}
@@ -122,14 +122,12 @@ const styles = StyleSheet.create({
     inputContainer: {
         flexDirection: 'row',
         alignItems: 'center',
-        padding: 12,
+        padding: 10,
         backgroundColor: '#fff',
         borderTopWidth: 1,
         borderColor: '#eee',
-        position: 'absolute',
+        // position: 'relative',
         bottom: 0,
-        left: 0,
-        right: 0,
     },
     input: {
         flex: 1,

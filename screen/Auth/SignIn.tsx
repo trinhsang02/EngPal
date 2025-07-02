@@ -14,6 +14,7 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '@/navigation/Navigation';
 import { useAppDispatch } from '@/hooks/redux';
 import { login } from '@/store/userSlice';
+import { loginApi } from '../../services/authentication';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList, 'SignIn'>;
 
@@ -22,25 +23,31 @@ export default function SignInScreen() {
     const [password, setPassword] = useState('');
     const navigation = useNavigation<NavigationProp>();
     const dispatch = useAppDispatch();
+    const [error, setError] = useState('');
 
-    const handleSignIn = () => {
-        // TODO: Implement actual sign in logic
-        console.log('Sign in:', { email, password });
-
-        // Mock user data for now
-        dispatch(login({
-            id: '1',
-            email: email,
-            name: 'Test User',
-            level: 'Elementary',
-            progress: {
-                completedLessons: 0,
-                totalLessons: 0,
-                streak: 0
+    const handleSignIn = async () => {
+        setError('');
+        try {
+            const res = await loginApi(email, password);
+            if (res.success) {
+                dispatch(login({
+                    id: '1',
+                    email: email,
+                    name: 'Test User',
+                    level: 'Elementary',
+                    progress: {
+                        completedLessons: 0,
+                        totalLessons: 0,
+                        streak: 0
+                    }
+                }));
+                navigation.navigate('HomePage');
+            } else {
+                setError(res.message || 'Login failed');
             }
-        }));
-
-        navigation.navigate('HomePage');
+        } catch (e: any) {
+            setError(e.message || 'Login failed');
+        }
     };
 
     const handleGoogleSignIn = () => {
@@ -60,6 +67,7 @@ export default function SignInScreen() {
                     <Text style={styles.subtitle}>Sign in to continue</Text>
 
                     <View style={styles.form}>
+                        {error ? <Text style={{ color: 'red', marginBottom: 8 }}>{error}</Text> : null}
                         <TextInput
                             style={styles.input}
                             placeholder="Email"
