@@ -8,6 +8,8 @@ import { mangadexService } from '../../services/mangadexService';
 import StoryCard from '../../components/story/StoryCard';
 import StoryDetailModal from '../../components/story/StoryDetailModal';
 import StoryReader from '../../components/story/StoryReader';
+// import FloatingDictionaryModal from '../../components/FloatingDictionaryModal';
+// import FloatingButton from '../../components/FloatingButton';
 
 export default function StoryScreen({ navigation }: { navigation: any }) {
     const colorScheme = useColorScheme();
@@ -21,20 +23,21 @@ export default function StoryScreen({ navigation }: { navigation: any }) {
     const [loading, setLoading] = useState(true);
     const [selectedChapters, setSelectedChapters] = useState<any[]>([]);
     const [searchKeyword, setSearchKeyword] = useState('');
+    // const [dictionaryModalVisible, setDictionaryModalVisible] = useState(false);
 
     const loadInitialData = async () => {
         try {
             setLoading(true);
             console.log('🔍 Starting to load latest updated manga...');
-            
+
             // Test connection first
             const connectionTest = await mangadexService.testConnection();
             console.log('🌐 Connection test result:', connectionTest);
-            
+
             // Đổi sang lấy latest update
             const latestStories = await mangadexService.getRecentlyUpdatedManga(20);
             console.log('📚 Loaded stories count:', latestStories.length);
-            
+
             if (latestStories.length > 0) {
                 setFilteredStories(latestStories);
             } else {
@@ -64,7 +67,7 @@ export default function StoryScreen({ navigation }: { navigation: any }) {
         setShowStoryModal(true);
 
         // Lấy danh sách chapter từ API
-        const chapters = await mangadexService.getMangaChapters(story.id, { 
+        const chapters = await mangadexService.getMangaChapters(story.id, {
             limit: 100, // hoặc số lượng bạn muốn
             order: { chapter: 'desc' }
         });
@@ -76,11 +79,11 @@ export default function StoryScreen({ navigation }: { navigation: any }) {
         setShowStoryModal(false);
 
         try {
-            const chapters = await mangadexService.getMangaChapters(story.id, { 
-                limit: 10, 
-                order: { chapter: 'asc' } 
+            const chapters = await mangadexService.getMangaChapters(story.id, {
+                limit: 10,
+                order: { chapter: 'asc' }
             });
-            
+
             for (const chapter of chapters) {
                 const pages = await mangadexService.getChapterPages(chapter.id);
                 if (pages && pages.length > 0) {
@@ -89,7 +92,7 @@ export default function StoryScreen({ navigation }: { navigation: any }) {
                     return;
                 }
             }
-            
+
             Alert.alert('No Available Chapters', 'This manga has no readable chapters available.');
         } catch {
             Alert.alert('Error', 'Failed to load chapters.');
@@ -124,7 +127,7 @@ export default function StoryScreen({ navigation }: { navigation: any }) {
                 <Text style={[styles.emptyText, { color: colors.text }]}>
                     No manga available
                 </Text>
-                <Text 
+                <Text
                     style={[styles.retryText, { color: colors.tint }]}
                     onPress={loadInitialData}
                 >
@@ -138,7 +141,7 @@ export default function StoryScreen({ navigation }: { navigation: any }) {
         <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
             <StatusBar barStyle={colorScheme === 'dark' ? 'light-content' : 'dark-content'} />
 
-            <Header />
+            {/* <Header /> */}
 
             <TextInput
                 style={{
@@ -195,6 +198,13 @@ export default function StoryScreen({ navigation }: { navigation: any }) {
                     }}
                 />
             )}
+
+            {/* Floating Dictionary - rendered after story modals to ensure higher z-index */}
+            {/* <FloatingButton onPress={() => setDictionaryModalVisible(true)} />
+            <FloatingDictionaryModal
+                visible={dictionaryModalVisible}
+                onClose={() => setDictionaryModalVisible(false)}
+            /> */}
         </SafeAreaView>
     );
 }

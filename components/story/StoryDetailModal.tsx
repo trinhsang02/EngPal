@@ -11,6 +11,8 @@ import {
 import { Story } from '../../types/story';
 import { Colors } from '../../constants/Colors';
 import { useColorScheme } from '../../hooks/useColorScheme';
+import FloatingDictionaryModal from '../FloatingDictionaryModal';
+import FloatingButton from '../FloatingButton';
 
 interface StoryDetailModalProps {
     story: Story | null;
@@ -29,6 +31,7 @@ export default function StoryDetailModal({
 }: StoryDetailModalProps) {
     const colorScheme = useColorScheme();
     const colors = Colors[colorScheme ?? 'light'];
+    const [dictionaryModalVisible, setDictionaryModalVisible] = React.useState(false);
 
     // Đặt useMemo ở đây, KHÔNG đặt sau if (!story)
     const groupedChapters = React.useMemo(() => {
@@ -215,6 +218,13 @@ export default function StoryDetailModal({
                     )}
                 </ScrollView>
             </View>
+
+            {/* Floating Dictionary - rendered inside modal to work with this modal */}
+            <FloatingButton onPress={() => setDictionaryModalVisible(true)} />
+            <FloatingDictionaryModal
+                visible={dictionaryModalVisible}
+                onClose={() => setDictionaryModalVisible(false)}
+            />
         </Modal>
     );
 }

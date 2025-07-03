@@ -15,6 +15,9 @@ import { Story } from '../../types/story';
 import { Colors } from '../../constants/Colors';
 import { useColorScheme } from '../../hooks/useColorScheme';
 import mangadexService from '../../services/mangadexService';
+import FloatingDictionaryModal from '../FloatingDictionaryModal';
+import FloatingButton from '../FloatingButton';
+import { Ionicons } from '@expo/vector-icons';
 
 interface StoryReaderProps {
     story: Story;
@@ -27,12 +30,13 @@ const { width: screenWidth } = Dimensions.get('window');
 export default function StoryReader({ story, chapterId, onClose }: StoryReaderProps) {
     const colorScheme = useColorScheme();
     const colors = Colors[colorScheme ?? 'light'];
-    
+
     const [pages, setPages] = useState<string[]>([]);
     const [loading, setLoading] = useState(true);
     const [currentPage, setCurrentPage] = useState(0);
     const [showControls, setShowControls] = useState(true);
     const [chapterInfo, setChapterInfo] = useState<any>(null);
+    const [dictionaryModalVisible, setDictionaryModalVisible] = useState(false);
 
     useEffect(() => {
         const loadPages = async () => {
@@ -109,6 +113,13 @@ export default function StoryReader({ story, chapterId, onClose }: StoryReaderPr
                         Loading chapter...
                     </Text>
                 </View>
+
+                {/* Floating Dictionary - also available during loading */}
+                <FloatingButton onPress={() => setDictionaryModalVisible(true)} />
+                <FloatingDictionaryModal
+                    visible={dictionaryModalVisible}
+                    onClose={() => setDictionaryModalVisible(false)}
+                />
             </Modal>
         );
     }
@@ -119,7 +130,8 @@ export default function StoryReader({ story, chapterId, onClose }: StoryReaderPr
                 {/* Header Controls */}
                 <View style={[styles.header, { backgroundColor: colors.background + 'E6' }]}>
                     <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-                        <Text style={[styles.closeText, { color: '#fff' }]}>← Back</Text>
+                        {/* <Text style={[styles.closeText, { color: '#fff' }]}>←</Text> */}
+                        <Ionicons name="arrow-back" size={24} color="#fff" />
                     </TouchableOpacity>
                     <View style={styles.titleContainer}>
                         <Text style={[styles.storyTitle, { color: '#fff', fontSize: 18 }]} numberOfLines={1}>
@@ -163,6 +175,13 @@ export default function StoryReader({ story, chapterId, onClose }: StoryReaderPr
                     </Text>
                 </View>
             </View>
+
+            {/* Floating Dictionary - rendered inside modal to work with this modal */}
+            <FloatingButton onPress={() => setDictionaryModalVisible(true)} />
+            <FloatingDictionaryModal
+                visible={dictionaryModalVisible}
+                onClose={() => setDictionaryModalVisible(false)}
+            />
         </Modal>
     );
 }
