@@ -166,10 +166,10 @@ const FloatingDictionaryModal: React.FC<FloatingDictionaryModalProps> = ({ visib
                 <MaterialIcons name="translate" size={24} color="#4285F4" />
                 <Text style={styles.translationTitle}>Kết quả dịch</Text>
             </View>
-            <View style={styles.originalTextContainer}>
+            {/* <View style={styles.originalTextContainer}>
                 <Text style={styles.originalLabel}>Văn bản gốc:</Text>
                 <Text style={styles.originalText}>{query}</Text>
-            </View>
+            </View> */}
             <View style={styles.translatedTextContainer}>
                 <Text style={styles.translatedLabel}>Bản dịch:</Text>
                 <Text style={styles.translatedText}>{translationResult}</Text>
