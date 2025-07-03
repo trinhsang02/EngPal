@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Modal, View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView, ActivityIndicator } from 'react-native';
 import { Word, WordDetail } from '@/services/oxfordDatabase';
 import OxfordDatabaseService from '@/services/oxfordDatabase';
+import { translateText } from '@/services/translateService';
 import { MaterialIcons } from '@expo/vector-icons';
 
 interface FloatingDictionaryModalProps {
@@ -13,23 +14,68 @@ const FloatingDictionaryModal: React.FC<FloatingDictionaryModalProps> = ({ visib
     const [query, setQuery] = useState('');
     const [searchResults, setSearchResults] = useState<Word[]>([]);
     const [selectedWord, setSelectedWord] = useState<WordDetail | null>(null);
+    const [translationResult, setTranslationResult] = useState<string | null>(null);
     const [loading, setLoading] = useState(false);
     const [searching, setSearching] = useState(false);
 
     const oxfordService = OxfordDatabaseService.getInstance();
 
+    // Check if input is a long sentence (more than 2 words or contains spaces and punctuation)
+    const isLongSentence = (text: string): boolean => {
+        const trimmed = text.trim();
+        const wordCount = trimmed.split(/\s+/).filter(word => word.length > 0).length;
+        return wordCount > 2 || /[.!?,:;]/.test(trimmed);
+    };
+
+    const handleTranslate = async (text: string) => {
+        setSearching(true);
+        setSelectedWord(null);
+        setSearchResults([]);
+        setTranslationResult(null);
+
+        try {
+            // Detect if text is Vietnamese or English for translation direction
+            const isVietnamese = /[àáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹđ]/i.test(text);
+            const targetLang = isVietnamese ? 'en' : 'vi';
+
+            const translated = await translateText(text, targetLang);
+            setTranslationResult(translated);
+        } catch (error) {
+            console.error('Translation error:', error);
+            setTranslationResult('Lỗi dịch, vui lòng thử lại!');
+        } finally {
+            setSearching(false);
+        }
+    };
+
     const handleSearch = async () => {
         if (!query.trim()) return;
 
+        const trimmedQuery = query.trim();
+
+        // If it's a long sentence, use translation instead of dictionary lookup
+        if (isLongSentence(trimmedQuery)) {
+            await handleTranslate(trimmedQuery);
+            return;
+        }
+
         setSearching(true);
         setSelectedWord(null);
+        setTranslationResult(null);
 
         try {
-            const results = await oxfordService.searchWords(query.trim());
-            setSearchResults(results);
+            const results = await oxfordService.searchWords(trimmedQuery);
+
+            if (results.length === 0) {
+                // No results found in Oxford database, try translation
+                await handleTranslate(trimmedQuery);
+            } else {
+                setSearchResults(results);
+            }
         } catch (error) {
             console.error('Search error:', error);
-            setSearchResults([]);
+            // If Oxford search fails, try translation as fallback
+            await handleTranslate(trimmedQuery);
         } finally {
             setSearching(false);
         }
@@ -50,6 +96,7 @@ const FloatingDictionaryModal: React.FC<FloatingDictionaryModalProps> = ({ visib
 
     const handleBack = () => {
         setSelectedWord(null);
+        setTranslationResult(null);
         // Don't clear search results, just show them again
     };
 
@@ -113,12 +160,30 @@ const FloatingDictionaryModal: React.FC<FloatingDictionaryModalProps> = ({ visib
         );
     };
 
+    const renderTranslationResult = () => (
+        <View style={styles.translationContainer}>
+            <View style={styles.translationHeader}>
+                <MaterialIcons name="translate" size={24} color="#4285F4" />
+                <Text style={styles.translationTitle}>Kết quả dịch</Text>
+            </View>
+            <View style={styles.originalTextContainer}>
+                <Text style={styles.originalLabel}>Văn bản gốc:</Text>
+                <Text style={styles.originalText}>{query}</Text>
+            </View>
+            <View style={styles.translatedTextContainer}>
+                <Text style={styles.translatedLabel}>Bản dịch:</Text>
+                <Text style={styles.translatedText}>{translationResult}</Text>
+            </View>
+        </View>
+    );
+
     const resetModal = () => {
         setQuery('');
         setSearchResults([]);
         setSelectedWord(null);
         setLoading(false);
         setSearching(false);
+        setTranslationResult(null);
     };
 
     const handleClose = () => {
@@ -129,7 +194,12 @@ const FloatingDictionaryModal: React.FC<FloatingDictionaryModalProps> = ({ visib
     if (!visible) return null;
 
     return (
-        <Modal transparent visible={visible} animationType="fade">
+        <Modal
+            transparent
+            visible={visible}
+            animationType="fade"
+            presentationStyle="overFullScreen"
+        >
             <View style={styles.overlay}>
                 <View style={styles.floating}>
                     <View style={styles.header}>
@@ -175,12 +245,7 @@ const FloatingDictionaryModal: React.FC<FloatingDictionaryModalProps> = ({ visib
                     ) : searchResults.length > 0 ? (
                         renderSearchResults()
                     ) : query && !searching ? (
-                        <View style={styles.noResultsContainer}>
-                            <MaterialIcons name="search-off" size={48} color="#ccc" />
-                            <Text style={styles.noResultsText}>
-                                Không tìm thấy từ "{query}"
-                            </Text>
-                        </View>
+                        renderTranslationResult()
                     ) : null}
                 </View>
             </View>
@@ -194,13 +259,16 @@ const styles = StyleSheet.create({
         backgroundColor: 'rgba(0,0,0,0.3)',
         justifyContent: 'center',
         alignItems: 'center',
+        zIndex: 9999,
+        elevation: 999,
     },
     floating: {
         width: '90%',
         maxHeight: '80%',
         backgroundColor: '#fff',
         borderRadius: 16,
-        elevation: 10,
+        elevation: 1000,
+        zIndex: 10000,
         shadowColor: '#000',
         shadowOpacity: 0.2,
         shadowRadius: 10,
@@ -351,15 +419,43 @@ const styles = StyleSheet.create({
         color: '#666',
         fontSize: 14,
     },
-    noResultsContainer: {
-        padding: 32,
-        alignItems: 'center',
+    translationContainer: {
+        padding: 16,
     },
-    noResultsText: {
-        marginTop: 12,
+    translationHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginBottom: 16,
+    },
+    translationTitle: {
+        fontSize: 18,
+        fontWeight: 'bold',
+        color: '#333',
+        marginLeft: 8,
+    },
+    originalTextContainer: {
+        marginBottom: 16,
+    },
+    originalLabel: {
+        fontSize: 14,
+        fontWeight: 'bold',
         color: '#666',
+    },
+    originalText: {
         fontSize: 16,
-        textAlign: 'center',
+        color: '#333',
+    },
+    translatedTextContainer: {
+        marginBottom: 16,
+    },
+    translatedLabel: {
+        fontSize: 14,
+        fontWeight: 'bold',
+        color: '#666',
+    },
+    translatedText: {
+        fontSize: 16,
+        color: '#333',
     },
 });
 
