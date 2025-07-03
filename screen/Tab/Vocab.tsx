@@ -61,6 +61,7 @@ const Vocab: React.FC = () => {
       if (query.trim().includes(' ')) {
         setTranslating(true);
         try {
+          // Ưu tiên dịch sang tiếng Việt nếu phát hiện nhập tiếng Anh
           const targetLang = /[a-zA-Z]/.test(query) ? 'vi' : 'en';
           const translated = await translateText(query.trim(), targetLang);
           setTranslateResult(translated);

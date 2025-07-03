@@ -540,7 +540,7 @@ class MangaDexService {
         // Get cover from relationships
         const coverRel = manga.relationships.find(rel => rel.type === 'cover_art');
         const cover = coverRel ?
-            `https://uploads.mangadex.org/covers/${manga.id}/${coverRel.attributes?.fileName}` :
+            `http://10.0.2.2:8080/api/mangadex/uploads/covers/${manga.id}/${coverRel.attributes?.fileName}` :
             'https://via.placeholder.com/300x400?text=No+Cover';
 
         // Get tags
@@ -583,7 +583,7 @@ class MangaDexService {
 
     // Get cover image URL
     getCoverUrl(mangaId: string, fileName: string): string {
-        return `https://uploads.mangadex.org/covers/${mangaId}/${fileName}`;
+        return `http://10.0.2.2:8080/api/mangadex/uploads/covers/${mangaId}/${fileName}`;
     }
 
     // Search manga by title
